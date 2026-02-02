@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/Discord-Bots
-ExecStart=/bin/bash /home/pi/Discord-Bots/raspberry_pi/run_bot.sh
+User={{USER}}
+WorkingDirectory={{INSTALL_DIR}}
+ExecStart=/bin/bash {{INSTALL_DIR}}/raspberry_pi/run_bot.sh
 Restart=always
 RestartSec=10
 

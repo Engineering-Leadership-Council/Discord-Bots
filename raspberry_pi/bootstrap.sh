@@ -2,8 +2,9 @@
 
 # Configuration
 REPO_URL="https://github.com/Engineering-Leadership-Council/Discord-Bots.git"
-INSTALL_DIR="/home/pi/Discord-Bots"
+INSTALL_DIR="$HOME/Discord-Bots"
 SERVICE_NAME="discord-bots"
+CURRENT_USER=$(whoami)
 
 echo "-----------------------------------"
 echo "  ELC Discord Bots - Pi Installer  "
@@ -37,8 +38,14 @@ pip install -r requirements.txt
 
 # 4. Service Setup
 echo "[4/5] Configuring Systemd Service..."
-# Correct the paths in the service file if necessary (assuming standard /home/pi/Discord-Bots path)
-sudo cp "$INSTALL_DIR/raspberry_pi/discord-bots.service" /etc/systemd/system/
+# Dynamically create the service file with correct paths/user
+SERVICE_FILE="/etc/systemd/system/$SERVICE_NAME.service"
+sudo cp "$INSTALL_DIR/raspberry_pi/discord-bots.service" "$SERVICE_FILE"
+
+# Replace placeholders in the installed service file
+sudo sed -i "s|{{USER}}|$CURRENT_USER|g" "$SERVICE_FILE"
+sudo sed -i "s|{{INSTALL_DIR}}|$INSTALL_DIR|g" "$SERVICE_FILE"
+
 sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE_NAME"
 sudo systemctl start "$SERVICE_NAME"

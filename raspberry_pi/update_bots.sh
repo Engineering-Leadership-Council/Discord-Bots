@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define directories
-LOG_FILE="/home/pi/bot_update.log"
-REPO_DIR="/home/pi/Discord-Bots"
+LOG_FILE="$HOME/bot_update.log"
+REPO_DIR="$HOME/Discord-Bots"
 
 echo "$(date): Checking for updates..." >> "$LOG_FILE"
 

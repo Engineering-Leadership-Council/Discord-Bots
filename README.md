@@ -12,8 +12,6 @@ This repository houses the custom Discord bots for the **Engineering Leadership 
 *   **🛡️ Anti-Spam**: Includes a 10-second debounce to prevent duplicate messages if Discord events fire multiple times.
 
 ### 2. Sudo Master (Role Manager)
-*   **🗂️ Affiliate Clubs Menu**: A persistent dropdown menu for users to self-assign club roles (e.g., Robotics Club).
-    *   *Usage*: Admin types `!setup_clubs #channel` to deploy.
 *   **⚡ Reaction Roles**: Create ad-hoc role messages anywhere.
     *   *Usage*: `!setup_reaction #channel "Title" @Role1 @Role2 ...`
     *   *Stateless*: No database required. The bot reads its own message to map emojis to roles.

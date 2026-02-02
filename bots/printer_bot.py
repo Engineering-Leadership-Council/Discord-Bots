@@ -98,7 +98,7 @@ class PrinterBot(discord.Client):
 
         for url in paths:
             try:
-                # print(f"DEBUG: Trying {url}...")
+                print(f"DEBUG: Trying {url}...")
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, timeout=2) as response:
                         if response.status == 200:
@@ -128,12 +128,12 @@ class PrinterBot(discord.Client):
                             }
                             return # Stop trying other paths if one worked
                         else:
-                            # print(f"DEBUG: {url} failed with {response.status}")
-                            pass
+                            print(f"DEBUG: {url} failed with {response.status}")
+                            # pass
 
             except Exception as e:
-                # print(f"DEBUG: Failed {url}: {e}")
-                pass
+                print(f"DEBUG: Failed {url}: {e}")
+                # pass
         
         print(f"DEBUG: Could not connect to {ip} on any known path.")
 

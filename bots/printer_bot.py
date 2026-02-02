@@ -86,44 +86,56 @@ class PrinterBot(discord.Client):
             await asyncio.sleep(5)  # Check every 5 seconds
 
     async def check_printer(self, ip):
-        # Try standard HTTP port 80 (Elegoo often proxies Moonraker here)
-        # Endpoint: /printer/objects/query
-        url = f"http://{ip}/printer/objects/query?print_stats&virtual_sdcard"
+        # Elegoo often puts Moonraker behind a reverse proxy.
+        # We will try a few common paths.
         
-        try:
-            print(f"DEBUG: Checking {ip} on port 80...")
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=3) as response:
-                    print(f"DEBUG: {ip} responded with {response.status}")
-                    if response.status != 200:
-                        return
-                    
-                    data = await response.json()
-                    result = data.get('result', {}).get('status', {})
-                    
-                    print_stats = result.get('print_stats', {})
-                    
-                    current_state = print_stats.get('state', 'unknown')
-                    filename = print_stats.get('filename', 'Unknown')
-                    
-                    print(f"DEBUG: {ip} State: {current_state}, File: {filename}")
+        paths = [
+            f"http://{ip}:7125/printer/objects/query?print_stats&virtual_sdcard", # Standard
+            f"http://{ip}/moonraker/printer/objects/query?print_stats&virtual_sdcard", # Reverse Proxy 1
+            f"http://{ip}/printer/objects/query?print_stats&virtual_sdcard", # Reverse Proxy 2
+            f"http://{ip}:8080/printer/objects/query?print_stats&virtual_sdcard", # Backup Port
+        ]
 
-                    # Get last state
-                    last_state = self.printer_states.get(ip, {}).get('state', 'unknown')
-                    
-                    # Detect Changes
-                    if current_state != last_state:
-                         print(f"DEBUG: State changed from {last_state} to {current_state}")
-                         await self.handle_state_change(ip, last_state, current_state, print_stats)
-                    
-                    # Update State
-                    self.printer_states[ip] = {
-                        'state': current_state, 
-                        'filename': filename
-                    }
+        for url in paths:
+            try:
+                # print(f"DEBUG: Trying {url}...")
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, timeout=2) as response:
+                        if response.status == 200:
+                            # Found it!
+                            data = await response.json()
+                            result = data.get('result', {}).get('status', {})
+                            
+                            print_stats = result.get('print_stats', {})
+                            current_state = print_stats.get('state', 'unknown')
+                            filename = print_stats.get('filename', 'Unknown')
+                            
+                            print(f"DEBUG: Connected via {url}")
+                            print(f"DEBUG: {ip} State: {current_state}, File: {filename}")
 
-        except Exception as e:
-            print(f"DEBUG: Failed to connect to {ip}: {e}")
+                            # Get last state
+                            last_state = self.printer_states.get(ip, {}).get('state', 'unknown')
+                            
+                            # Detect Changes
+                            if current_state != last_state:
+                                print(f"DEBUG: State changed from {last_state} to {current_state}")
+                                await self.handle_state_change(ip, last_state, current_state, print_stats)
+                            
+                            # Update State
+                            self.printer_states[ip] = {
+                                'state': current_state, 
+                                'filename': filename
+                            }
+                            return # Stop trying other paths if one worked
+                        else:
+                            # print(f"DEBUG: {url} failed with {response.status}")
+                            pass
+
+            except Exception as e:
+                # print(f"DEBUG: Failed {url}: {e}")
+                pass
+        
+        print(f"DEBUG: Could not connect to {ip} on any known path.")
 
     async def handle_state_change(self, ip, old_state, new_state, stats):
         if not self.log_channel_id:

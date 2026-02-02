@@ -4,12 +4,17 @@ This repository houses custom Discord bots for the **Engineering Leadership Coun
 
 ## Features
 
-### 🤖 Welcome Bot
-A friendly bot that welcomes new members with engineering-themed puns!
--   **Randomized Greetings**: "Ohm my god, a new member!", "Watt is up?", and more.
--   **Vibrant Embeds**: Messages appear in random, high-frequency colors.
--   **Helpful Links**: Directs new members to `#general`, `#introductions`, and the `#makerspace`.
--   **Smart Debounce**: Prevents duplicate welcome messages if Discord events fire multiple times.
+*   **Jeff the Doorman (Welcome Bot)**:
+    *   Targets specific welcome channels securely.
+    *   Greets new members with random Engineering Puns (Electrical/Mechanical).
+    *   Displays a "Where to Start" guide linking to key channels.
+    *   Uses vibrant, randomized embed colors.
+    *   **Anti-Spam**: Prevents duplicate welcomes via a 10-second debounce.
+
+*   **Sudo Master (Role Manager)**:
+    *   **Self-Service Roles**: Interactive dropdown menu for Affiliate Clubs.
+    *   **Admin Setup**: Deploy the menu to any channel using `!setup_clubs #channel`.
+    *   **Toggle Logic**: Clicking a role adds it; clicking again removes it.
 
 ## Setup
 
@@ -38,10 +43,17 @@ A friendly bot that welcomes new members with engineering-themed puns!
 
 ## Usage
 
-Run the bots with:
+### 1. Run the Bots
 ```bash
 python main.py
 ```
+*Both "Jeff the Doorman" and "Sudo Master" will start simultaneously.*
+
+### 2. Setup Role Menu (Sudo Master)
+To create the role signup menu:
+1.  Go to your admin channel.
+2.  Run the command: `!setup_clubs #target-channel`
+3.  The bot will post the persistent menu in the target channel.
 
 ## Troubleshooting
 

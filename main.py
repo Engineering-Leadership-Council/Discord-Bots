@@ -3,6 +3,7 @@ import os
 import discord
 from dotenv import load_dotenv
 from bots.welcome_bot import WelcomeBot
+from bots.role_bot import RoleBot
 
 # Load environment variables
 load_dotenv()
@@ -12,26 +13,35 @@ async def run_bots():
     intents = discord.Intents.default()
     intents.members = True  # Required for on_member_join
     intents.message_content = True
+    intents.guilds = True
 
     # 1. Welcome Bot
     welcome_token = os.getenv('WELCOME_BOT_TOKEN')
-    if not welcome_token:
-        print("Error: WELCOME_BOT_TOKEN not found in .env")
-        return
-    welcome_token = welcome_token.strip()
-
-    welcome_bot = WelcomeBot(intents=intents)
-
-    # List of bot run tasks
-    bots = []
     
-    # Add Welcome Bot to tasks
-    # client.start() is the coroutine to start the connection
-    bots.append(welcome_bot.start(welcome_token))
+    # 2. Role Manager (Sudo Master)
+    role_token = os.getenv('ROLE_MANAGER_TOKEN')
 
-    # Add other bots here in the future
-    # other_bot = OtherBot(...)
-    # bots.append(other_bot.start(other_token))
+    bots = []
+
+    # Add Welcome Bot
+    if welcome_token:
+        # Note: 'intents' is shared, but that's fine as long as it has what both need
+        welcome_bot = WelcomeBot(intents=intents)
+        bots.append(welcome_bot.start(welcome_token.strip()))
+    else:
+        print("Warning: WELCOME_BOT_TOKEN not found in .env")
+
+    # Add Role Manager
+    if role_token:
+        # RoleBot needs member access too, effectively enabled by default intents + members=True above
+        role_bot = RoleBot(intents=intents)
+        bots.append(role_bot.start(role_token.strip()))
+    else:
+        print("Warning: ROLE_MANAGER_TOKEN not found in .env")
+
+    if not bots:
+        print("Error: No bot tokens found. Exiting.")
+        return
 
     print("Starting bots...")
     await asyncio.gather(*bots)

@@ -14,6 +14,7 @@ This repository houses custom Discord bots for the **Engineering Leadership Coun
 *   **Sudo Master (Role Manager)**:
     *   **Self-Service Roles**: Interactive dropdown menu for Affiliate Clubs.
     *   **Admin Setup**: Deploy the menu to any channel using `!setup_clubs #channel`.
+    *   **Reaction Roles**: Create custom role messages with `!setup_reaction #channel "Title" @Role1 @Role2`.
     *   **Toggle Logic**: Clicking a role adds it; clicking again removes it.
 
 ## Setup

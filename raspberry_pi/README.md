@@ -34,10 +34,10 @@ nano /home/pi/Discord-Bots/.env
 Paste your variables inside:
 ```ini
 WELCOME_BOT_TOKEN=your_token_here
-WELCOME_CHANNEL_ID=886081479736709131
-GENERAL_CHANNEL_ID=886031679595114528
-INTRODUCTIONS_CHANNEL_ID=1412963436102549511
-MAKER_GENERAL_CHANNEL_ID=1347068830094069780
+WELCOME_CHANNEL_ID=your_welcome_channel_id
+GENERAL_CHANNEL_ID=your_general_channel_id
+INTRODUCTIONS_CHANNEL_ID=your_intro_channel_id
+MAKER_GENERAL_CHANNEL_ID=your_maker_channel_id
 ```
 
 Save (Ctrl+O, Enter) and Exit (Ctrl+X).

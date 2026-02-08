@@ -4,6 +4,7 @@ import discord
 from dotenv import load_dotenv
 from bots.welcome_bot import WelcomeBot
 from bots.role_bot import RoleBot
+from bots.event_bot import EventBot
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +21,9 @@ async def run_bots():
     
     # 2. Role Manager (Sudo Master)
     role_token = os.getenv('ROLE_MANAGER_TOKEN')
+    
+    # 3. Event Bot
+    event_token = os.getenv('EVENT_BOT_TOKEN')
 
     bots = []
 
@@ -38,6 +42,13 @@ async def run_bots():
         bots.append(role_bot.start(role_token.strip()))
     else:
         print("Warning: ROLE_MANAGER_TOKEN not found in .env")
+
+    # Add Event Bot
+    if event_token:
+        event_bot = EventBot(intents=intents)
+        bots.append(event_bot.start(event_token.strip()))
+    else:
+        print("Warning: EVENT_BOT_TOKEN not found in .env")
 
 
 

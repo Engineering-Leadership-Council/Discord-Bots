@@ -1,14 +1,14 @@
 # Discord Bots 🤖
 
-This repository houses the custom Discord bots for the **Engineering Leadership Council (ELC)**.
+This repository houses the custom Discord bots for the **Engineering Leadership Council (ELC)**. These bots help automate server management, welcome new members, and schedule events.
 
 ## 🌟 Features
 
 ### 1. Jeff the Doorman (Welcome Bot)
-*   **👋 Smart Greetings**: Welcomes new members with randomized **Engineering Puns** (Electrical, Mechanical & more).
+*   **👋 Smart Greetings**: Welcomes new members with randomized **Engineering Puns** (Electrical, Mechanical, Civil, & more).
 *   **🆔 Auto-Role**: Automatically assigns the "Member" role to anyone who joins (configurable via `.env`).
 *   **🧭 Orientation**: Adds a "Where to Start" section linking to key channels (`#general`, `#introductions`, etc.).
-*   **🎨 Vibrant visuals**: Uses high-frequency random colors for embeds.
+*   **🎨 Vibrant visuals**: Uses high-frequency random colors for embeds to make each welcome unique.
 *   **🛡️ Anti-Spam**: Includes a 10-second debounce to prevent duplicate messages if Discord events fire multiple times.
 
 ### 2. Sudo Master (Role Manager)
@@ -17,6 +17,16 @@ This repository houses the custom Discord bots for the **Engineering Leadership 
     *   *Stateless*: No database required. The bot reads its own message to map emojis to roles.
 *   **🔒 Admin Security**: Commands are restricted to users with Administrator permissions.
 
+### 3. Event Messenger Bot
+*   **📅 Event Scheduling**: Schedule upcoming events with a simple command.
+    *   *Usage*: `!add_event "Name" "YYYY-MM-DD HH:MM" "Description"`
+    *   *Example*: `!add_event "General Meeting" "2024-10-15 18:00" "Byrne Hall"`
+*   **🔔 Intelligent Notifications**: Automatically posts an announcement embed to a designated channel when the event time arrives.
+*   **💾 Persistence**: Saves events to a local `events.json` file so they aren't lost if the bot restarts.
+*   **📋 Management**: 
+    *   `!list_events`: View all upcoming events.
+    *   `!delete_event <ID>`: Remove a cancelled event.
+
 ---
 
 ## 🚀 Setup & Installation
@@ -24,7 +34,7 @@ This repository houses the custom Discord bots for the **Engineering Leadership 
 ### Prerequisites
 *   Python 3.8+
 *   Discord Bot Token(s) from the [Developer Portal](https://discord.com/developers/applications).
-*   **Intents Enabled**: You MUST enable `Presence`, `Server Members`, and `Message Content` intents in the Discord Developer Portal.
+*   **Intents Enabled**: You MUST enable `Presence`, `Server Members`, and `Message Content` intents in the Discord Developer Portal for ALL bots.
 
 ### 1. Install Code
 ```bash
@@ -34,20 +44,23 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment
-Create a `.env` file in the root directory:
-```ini
-# --- Tokens ---
-WELCOME_BOT_TOKEN=your_token_here
-ROLE_MANAGER_TOKEN=your_role_token_here
+Create a `.env` file in the root directory. You can use separate tokens for each bot, or the same token if you run them as one "Application".
 
-# --- Channel IDs ---
+```ini
+# --- Welcome Bot ---
+WELCOME_BOT_TOKEN=your_token_here
 WELCOME_CHANNEL_ID=123456789
 GENERAL_CHANNEL_ID=123456789
 INTRODUCTIONS_CHANNEL_ID=123456789
 MAKER_GENERAL_CHANNEL_ID=123456789
 
-# --- Role IDs ---
+# --- Role Manager ---
+ROLE_MANAGER_TOKEN=your_token_here
 MEMBER_ROLE_ID=id_to_give_new_users
+
+# --- Event Bot ---
+EVENT_BOT_TOKEN=your_token_here
+EVENT_CHANNEL_ID=channel_to_post_announcements
 ```
 
 ---
@@ -63,11 +76,14 @@ python main.py
 ### Development (Run Individually)
 Test specific bots without interfering with others:
 ```bash
-# Run only Sudo Master
+# Run only Sudo Master (Role Bot)
 python scripts/run_role_bot.py
 
-# Run only Jeff the Doorman
+# Run only Jeff the Doorman (Welcome Bot)
 python scripts/run_welcome_bot.py
+
+# Run only Event Messenger
+python scripts/run_event_bot.py
 ```
 
 ---
@@ -93,3 +109,8 @@ Check if the bots are alive:
 ```bash
 journalctl -u discord-bots -f
 ```
+
+### Troubleshooting
+*   **Bot not starting?** Check `journalctl` logs.
+*   **Permissions Error?** Make sure the Bot role has "Manage Roles" and "Send Messages" permissions in the server.
+*   **Events not posting?** Ensure `EVENT_CHANNEL_ID` is correct and the bot has permission to view/post in that channel.

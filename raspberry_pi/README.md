@@ -41,6 +41,8 @@ GENERAL_CHANNEL_ID=your_general_channel_id
 INTRODUCTIONS_CHANNEL_ID=your_intro_channel_id
 MAKER_GENERAL_CHANNEL_ID=your_maker_channel_id
 MEMBER_ROLE_ID=your_member_role_id
+EVENT_BOT_TOKEN=your_event_bot_token
+EVENT_CHANNEL_ID=your_event_channel_id
 ```
 
 Save (Ctrl+O, Enter) and Exit (Ctrl+X).

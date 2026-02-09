@@ -97,38 +97,48 @@ class EventBot(discord.Client):
 
         # Simple Command Parsing
         if message.content.startswith('!add_event'):
-            # Format: !add_event "Name" "YYYY-MM-DD HH:MM" "Description"
+            # Format: !add_event "Name" "YYYY-MM-DD" "HH:MM" "Description" [ImageURL]
             try:
-                # Basic csv-like split respecting quotes is hard without regex or csv module
-                # But let's use a simpler approach: split by " " and hope for the best, or use shlex
                 import shlex
                 parts = shlex.split(message.content)
                 # parts[0] is !add_event
-                if len(parts) < 4:
-                    await message.reply('Usage: `!add_event "Name" "YYYY-MM-DD HH:MM" "Description"`')
+                
+                # Check for at least Name, Date, Time, Description (5 parts total including command)
+                if len(parts) < 5:
+                    await message.reply('Usage: `!add_event "Name" "YYYY-MM-DD" "HH:MM" "Description" [ImageURL]` (or attach an image)')
                     return
                 
                 name = parts[1]
-                time_str = parts[2]
-                description = parts[3]
+                date_str = parts[2]
+                time_str = parts[3]
+                description = parts[4]
+                
+                # Combine Date and Time
+                full_time_str = f"{date_str} {time_str}"
+                
+                image_url = None
+                if message.attachments:
+                    image_url = message.attachments[0].url
+                elif len(parts) > 5:
+                    image_url = parts[5]
 
                 # Validate Time
                 try:
-                    datetime.strptime(time_str, "%Y-%m-%d %H:%M")
+                    datetime.strptime(full_time_str, "%Y-%m-%d %H:%M")
                 except ValueError:
-                    await message.reply('Error: Invalid Date Format. Use "YYYY-MM-DD HH:MM" (24-hour format). Example: "2024-12-25 14:30"')
+                    await message.reply('Error: Invalid Date/Time Format. Use "YYYY-MM-DD" "HH:MM" (24-hour). Example: "2024-12-25" "14:30"')
                     return
 
                 new_event = {
                     "name": name,
-                    "time": time_str,
+                    "time": full_time_str,
                     "description": description,
                     "image_url": image_url,
                     "created_by": message.author.id
                 }
                 self.events.append(new_event)
                 self.save_events()
-                await message.reply(f"Event **{name}** added for `{time_str}`.")
+                await message.reply(f"Event **{name}** added for `{full_time_str}`.")
                 print(f"Event added: {name}")
 
             except Exception as e:

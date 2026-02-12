@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from bots.welcome_bot import WelcomeBot
 from bots.role_bot import RoleBot
 from bots.event_bot import EventBot
+import bot_config
 
 # Load environment variables
 load_dotenv()
@@ -28,27 +29,36 @@ async def run_bots():
     bots = []
 
     # Add Welcome Bot
-    if welcome_token:
-        # Note: 'intents' is shared, but that's fine as long as it has what both need
-        welcome_bot = WelcomeBot(intents=intents)
-        bots.append(welcome_bot.start(welcome_token.strip()))
+    if bot_config.ENABLE_WELCOME_BOT:
+        if welcome_token:
+            # Note: 'intents' is shared, but that's fine as long as it has what both need
+            welcome_bot = WelcomeBot(intents=intents)
+            bots.append(welcome_bot.start(welcome_token.strip()))
+        else:
+            print("Warning: WELCOME_BOT_TOKEN not found in .env (but bot is ENABLED)")
     else:
-        print("Warning: WELCOME_BOT_TOKEN not found in .env")
+        print("Welcome Bot is DISABLED in bot_config.py")
 
     # Add Role Manager
-    if role_token:
-        # RoleBot needs member access too, effectively enabled by default intents + members=True above
-        role_bot = RoleBot(intents=intents)
-        bots.append(role_bot.start(role_token.strip()))
+    if bot_config.ENABLE_ROLE_BOT:
+        if role_token:
+            # RoleBot needs member access too, effectively enabled by default intents + members=True above
+            role_bot = RoleBot(intents=intents)
+            bots.append(role_bot.start(role_token.strip()))
+        else:
+            print("Warning: ROLE_MANAGER_TOKEN not found in .env (but bot is ENABLED)")
     else:
-        print("Warning: ROLE_MANAGER_TOKEN not found in .env")
+        print("Role Bot is DISABLED in bot_config.py")
 
     # Add Event Bot
-    if event_token:
-        event_bot = EventBot(intents=intents)
-        bots.append(event_bot.start(event_token.strip()))
+    if bot_config.ENABLE_EVENT_BOT:
+        if event_token:
+            event_bot = EventBot(intents=intents)
+            bots.append(event_bot.start(event_token.strip()))
+        else:
+            print("Warning: EVENT_BOT_TOKEN not found in .env (but bot is ENABLED)")
     else:
-        print("Warning: EVENT_BOT_TOKEN not found in .env")
+        print("Event Bot is DISABLED in bot_config.py")
 
 
 

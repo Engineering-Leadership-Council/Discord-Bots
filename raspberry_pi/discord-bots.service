@@ -1,14 +1,19 @@
 [Unit]
-Description=ELC Discord Bots Host
-After=network.target
+Description=ELC Discord Bots Service
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-User={{USER}}
-WorkingDirectory={{INSTALL_DIR}}
-ExecStart=/bin/bash {{INSTALL_DIR}}/raspberry_pi/run_bot.sh
+User=pi
+WorkingDirectory=/home/pi/Discord-Bots
+# ExecStart points to the update script instead of python directly
+ExecStart=/bin/bash /home/pi/Discord-Bots/scripts/start_and_update.sh
 Restart=always
-RestartSec=10
+# Wait 60 seconds before restarting to prevent rapid loops if crashing, and allow time for network/updates
+RestartSec=60
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

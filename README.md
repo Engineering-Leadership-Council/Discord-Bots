@@ -13,8 +13,9 @@ This repository contains the custom Discord bots developed for the **Engineering
 
 ### 2. Sudo Master (Role Manager)
 *   **Reaction Roles**: Facilitates ad-hoc role assignment via reaction monitoring.
-    *   *Usage*: `!setup_reaction #channel "Title" @Role1 @Role2 ...`
-    *   *Architecture*: Stateless design; the bot reads its own messages to map reactions to roles, requiring no database.
+    *   *Usage*: `!setup_reaction #channel "Title" <Emoji> @Role1 <Emoji> @Role2 ...`
+    *   *Example*: `!setup_reaction #roles "Choose your Class" ⚔️ @Warrior 🛡️ @Paladin`
+    *   *Architecture*: Stateless design; the bot reads its own messages to map reactions to roles.
 *   **Access Control**: Critical commands are restricted to users with Administrator permissions.
 
 ### 3. The Event Loop
@@ -47,7 +48,9 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configuration
-Create a `.env` file in the root directory. You may use separate tokens for each bot or a single token if running as a combined application.
+
+**Environment Variables**
+Create a `.env` file in the root directory.
 
 ```ini
 # --- Welcome Bot ---
@@ -65,6 +68,9 @@ MEMBER_ROLE_ID=id_to_give_new_users
 EVENT_BOT_TOKEN=your_token_here
 EVENT_CHANNEL_ID=channel_to_post_announcements
 ```
+
+**Bot Names & Branding**
+You can customize the public-facing names and footers of the bots by editing `bot_config.py` in the root directory.
 
 ---
 

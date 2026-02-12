@@ -1,53 +1,45 @@
 # Raspberry Pi Setup Guide
 
-This folder contains everything you need to run these bots on a Raspberry Pi with auto-start and auto-updates.
+This folder contains the Discord Bots service for the Engineering Leadership Council.
 
-## 🚀 One-Step Install
+## 🚀 Easy Setup
 
-1.  Connect to your Raspberry Pi via SSH.
-2.  Download the `bootstrap.sh` script:
+1.  **Clone the Repository** (or your fork):
     ```bash
-    wget https://raw.githubusercontent.com/Engineering-Leadership-Council/Discord-Bots/main/raspberry_pi/bootstrap.sh
-    ```
-3.  Make it executable:
-    ```bash
-    chmod +x bootstrap.sh
-    ```
-4.  Run it:
-    ```bash
-    bash bootstrap.sh
+    git clone https://github.com/Engineering-Leadership-Council/Discord-Bots.git
+    cd Discord-Bots
     ```
 
-## 🛠️ What did it do?
--   Installed Python, Git, and Pip.
--   Cloned the repo to `/home/pi/Discord-Bots`.
--   Created a Systemd Service (`discord-bots.service`) so the bot starts on boot.
--   Set up an **Hourly Auto-Update**: Checks GitHub every hour; if new code is found, it pulls it and restarts the bot automatically.
+2.  **Run the Interactive Setup Script**:
+    ```bash
+    chmod +x scripts/setup.sh
+    ./scripts/setup.sh
+    ```
+    
+    The script will ask you:
+    -   Whether to use the **Main ELC Repo** (requires Admin Code) or a **Custom Fork**.
+    -   To set up your `.env` file (it provides a template).
+    -   To install the **Systemd Service** for auto-updates.
 
-## 🔑 Final Step (Important!)
-You must create your `.env` file with your tokens!
+## 🔑 Post-Setup
+
+If you chose to edit the `.env` file during setup, paste your tokens there.
+If not, you can edit it manually:
 
 ```bash
-cd ~/Discord-Bots
 nano .env
 ```
 
-Paste your variables inside:
-```ini
-WELCOME_BOT_TOKEN=your_token_here
-ROLE_MANAGER_TOKEN=your_role_token_here
-WELCOME_CHANNEL_ID=your_welcome_channel_id
-GENERAL_CHANNEL_ID=your_general_channel_id
-INTRODUCTIONS_CHANNEL_ID=your_intro_channel_id
-MAKER_GENERAL_CHANNEL_ID=your_maker_channel_id
-MEMBER_ROLE_ID=your_member_role_id
-EVENT_BOT_TOKEN=your_event_bot_token
-EVENT_CHANNEL_ID=your_event_channel_id
+After updating `.env`, restart the service to apply changes:
+```bash
+sudo systemctl restart discord-bots
 ```
 
-Save (Ctrl+O, Enter) and Exit (Ctrl+X).
+## 🔄 Auto-Update
 
-Then restart the service to load the tokens:
+The installed service uses `scripts/start_and_update.sh`, which performs a `git pull` every time the service starts or restarts.
+To force an update immediately:
+
 ```bash
 sudo systemctl restart discord-bots
 ```

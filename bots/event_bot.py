@@ -10,22 +10,28 @@ class EventBot(discord.Client):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.events_file = "events.json"
-        self.events: List[Dict] = self.load_events()
+        self.data = self.load_data()
+        self.events = self.data['events'] # specific reference for convenience
         self.bg_task = None
         self.channel_id = None
 
-    def load_events(self) -> List[Dict]:
+    def load_data(self) -> Dict:
         if not os.path.exists(self.events_file):
-            return []
+            return {'events': [], 'dashboard': None}
         try:
             with open(self.events_file, 'r') as f:
-                return json.load(f)
+                content = json.load(f)
+                # Migration: If it's a list (old format), wrap it
+                if isinstance(content, list):
+                    print("Migrating events.json to new format...")
+                    return {'events': content, 'dashboard': None}
+                return content
         except json.JSONDecodeError:
-            return []
+            return {'events': [], 'dashboard': None}
 
     def save_events(self):
         with open(self.events_file, 'w') as f:
-            json.dump(self.events, f, indent=4)
+            json.dump(self.data, f, indent=4)
 
     async def on_ready(self):
         print(f'The Event Loop logged in as {self.user} (ID: {self.user.id})')
@@ -89,15 +95,86 @@ class EventBot(discord.Client):
                     if e in self.events:
                         self.events.remove(e)
                 self.save_events()
+                await self.update_dashboard() # Update dashboard on expiry
 
             await asyncio.sleep(60) # Check every 60 seconds
+
+    async def update_dashboard(self):
+        """Updates the persistent dashboard message if it exists."""
+        dashboard_data = self.data.get('dashboard')
+        if not dashboard_data:
+            return
+
+        channel_id = dashboard_data.get('channel_id')
+        message_id = dashboard_data.get('message_id')
+        
+        if not channel_id or not message_id:
+            return
+
+        try:
+            channel = self.get_channel(channel_id)
+            if not channel:
+                # Channel might not be in cache or bot lost access
+                channel = await self.fetch_channel(channel_id)
+            
+            message = await channel.fetch_message(message_id)
+            
+            # Generate Embed
+            if not self.events:
+                embed = discord.Embed(title="📅 Upcoming Events", description="No events scheduled.", color=0x95A5A6)
+            else:
+                embed = discord.Embed(title="📅 Upcoming Events", color=0x3498DB)
+                # Sort events by time
+                sorted_events = sorted(self.events, key=lambda x: x['time'])
+                
+                for event in sorted_events:
+                    embed.add_field(
+                        name=f"{event['name']} - {event['time']}",
+                        value=event['description'],
+                        inline=False
+                    )
+            
+            embed.set_footer(text=f"Last Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            await message.edit(embed=embed)
+            
+        except discord.NotFound:
+            print("Dashboard message or channel not found. Removing dashboard config.")
+            self.data['dashboard'] = None
+            self.save_events()
+        except Exception as e:
+            print(f"Failed to update dashboard: {e}")
 
     async def on_message(self, message):
         if message.author == self.user:
             return
 
         # Simple Command Parsing
-        if message.content.startswith('!add_event'):
+        if message.content.startswith('!setup_dashboard'):
+            try:
+                # Determine channel: Current channel or mentioned channel
+                target_channel = message.channel
+                if message.channel_mentions:
+                    target_channel = message.channel_mentions[0]
+
+                # Send placeholder
+                placeholder = await target_channel.send("Initializing Event Dashboard...")
+                
+                # Save config
+                self.data['dashboard'] = {
+                    'channel_id': target_channel.id,
+                    'message_id': placeholder.id
+                }
+                self.save_events()
+                
+                # Update it immediately
+                await self.update_dashboard()
+                await message.delete() # Clean up command
+                print(f"Dashboard setup in {target_channel.name}")
+
+            except Exception as e:
+                await message.reply(f"Error setting up dashboard: {e}")
+
+        elif message.content.startswith('!add_event'):
             # Format: !add_event "Name" "YYYY-MM-DD" "HH:MM" "Description" [ImageURL]
             try:
                 import shlex
@@ -139,6 +216,7 @@ class EventBot(discord.Client):
                 }
                 self.events.append(new_event)
                 self.save_events()
+                await self.update_dashboard() # Update dashboard
                 await message.reply(f"Event **{name}** added for `{full_time_str}`.")
                 print(f"Event added: {name}")
 
@@ -170,6 +248,7 @@ class EventBot(discord.Client):
                 if 0 <= index < len(self.events):
                     removed = self.events.pop(index)
                     self.save_events()
+                    await self.update_dashboard() # Update dashboard
                     await message.reply(f"Deleted event: **{removed['name']}**")
                 else:
                     await message.reply("Invalid event number.")

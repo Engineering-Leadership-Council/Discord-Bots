@@ -1,5 +1,6 @@
 import discord
 import os
+import re
 
 class RoleBot(discord.Client):
     def __init__(self, *args, **kwargs):
@@ -24,7 +25,7 @@ class RoleBot(discord.Client):
         # Debug: Print raw message content
         print(f"DEBUG: Message from {message.author}: {message.content}")
 
-        # Command: !setup_reaction <#channel> "Title" @Role1 @Role2 ...
+        # Command: !setup_reaction <#channel> "Title" <Emoji> @Role ...
         if message.content.startswith('!setup_reaction'):
             # Check Perms
             if not message.channel.permissions_for(message.author).administrator:
@@ -32,57 +33,44 @@ class RoleBot(discord.Client):
                 return
 
             try:
-                # Split args. careful with quotes.
-                # Expected: !setup_reaction #channel "Title" @Role1 @Role2
-                args = message.content.split(' ', 2)
-                if len(args) < 3:
-                     await message.reply('Usage: `!setup_reaction #channel "Title" @Role1 @Role2 ...`')
-                     return
-
-                # Target Channel
+                # 1. Extract Target Channel
                 if not message.channel_mentions:
                     await message.reply("❌ Target channel not found.")
                     return
                 target_channel = message.channel_mentions[0]
 
-                # Remaining args: "Title" @Role1 @Role2
-                # We can't rely on simple split because of Title spaces.
-                # However, the mentions will always be at the end.
-                
-                roles = message.role_mentions
-                if not roles:
-                    await message.reply("❌ No roles mentioned.")
-                    return
-                
-                # Check limit (1-9)
-                number_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
-                if len(roles) > len(number_emojis):
-                    await message.reply(f"❌ Max {len(number_emojis)} roles per message.")
-                    return
-
-                # Extract Title (everything between channel and first role)
-                # This is a bit "hacky" string parsing but works for simple cases.
-                # Safer way: Use the raw content, find the channel end, find the first role start.
-                
-                # Let's construct the Embed Description
-                description = ""
-                for i, role in enumerate(roles):
-                    emoji = number_emojis[i]
-                    description += f"{emoji} : {role.mention}\n"
-                
-                # Simple Title extraction: content between channel mention and first role mention
-                # Note: This might be brittle if user formatting is weird.
-                # Let's just take a generic approach for now or assume quotes.
-                # Actually, let's just use "React to get roles!" if parsing fails, but let's try.
-                # A safer bet is just to use the role list as the main content.
-                
+                # 2. Extract Title
                 title = "React to get Roles!"
-                # Try to find quotes
-                import re
                 quote_match = re.search(r'"([^"]*)"', message.content)
                 if quote_match:
                     title = quote_match.group(1)
 
+                # 3. Clean content for parsing pairs
+                # Remove command, channel mention, and title to avoid false matches
+                clean_content = message.content.replace('!setup_reaction', '', 1)
+                clean_content = clean_content.replace(target_channel.mention, '', 1)
+                if quote_match:
+                    clean_content = clean_content.replace(quote_match.group(0), '', 1)
+                
+                # 4. Find Emoji-Role Pairs
+                # Regex looks for: (Non-whitespace) followed by (Role Mention)
+                # Matches: "🔴 <@&123>" or "<:custom:123> <@&456>"
+                pair_pattern = r'(\S+)\s+(<@&\d+>)'
+                matches = re.findall(pair_pattern, clean_content)
+
+                if not matches:
+                    await message.reply('Usage: `!setup_reaction #channel "Title" <Emoji> @Role ...`\nExample: `!setup_reaction #gen "Roles" 🔴 @Red 🔵 @Blue`')
+                    return
+
+                # 5. Build Description and Role Map
+                description = ""
+                emojis_to_add = []
+                
+                for emoji, role_mention in matches:
+                    description += f"{emoji} : {role_mention}\n"
+                    emojis_to_add.append(emoji)
+                
+                # 6. Create and Send Embed
                 embed = discord.Embed(
                     title=title,
                     description=description,
@@ -92,9 +80,13 @@ class RoleBot(discord.Client):
 
                 sent_msg = await target_channel.send(embed=embed)
                 
-                # Add Reactions
-                for i in range(len(roles)):
-                    await sent_msg.add_reaction(number_emojis[i])
+                # 7. Add Reactions
+                for emoji in emojis_to_add:
+                    try:
+                        await sent_msg.add_reaction(emoji)
+                    except Exception as e:
+                        print(f"Failed to add reaction {emoji}: {e}")
+                        # Continue adding others even if one fails
                 
                 await message.reply(f"✅ Reaction Role message created in {target_channel.mention}")
 
@@ -148,29 +140,31 @@ class RoleBot(discord.Client):
             return
 
         # LOGIC: Read the Embed Description to find the matching role
-        # Description format: "1️⃣ : <@&12345678>"
-        emoji_str = str(payload.emoji)
+        # Description format: "<Emoji> : <@&12345678>"
+        # We need to match the reaction emoji to the line.
+        
+        emoji_str = str(payload.emoji) 
+        # payload.emoji is a PartialEmoji. str() converts it to:
+        # - Unicode: "🔴"
+        # - Custom: "<:name:id>" or "<a:name:id>"
         
         description_lines = (embed.description or "").split('\n')
         target_role_id = None
 
         for line in description_lines:
-            if line.startswith(emoji_str):
+            # We look for the line that starts with the emoji.
+            # Simple startswith might be risky if emojis are subsets of each other, 
+            # but usually fine.
+            # Best to check if line starts with "{emoji_str} :"
+            
+            # Allow flexible spacing around colon
+            if line.strip().startswith(emoji_str):
                 # Found the line! Now extract role ID.
-                # Line: "1️⃣ : <@&12345>"
-                # Split by ':'
-                parts = line.split(':')
-                if len(parts) < 2: 
-                    continue
-                
-                role_mention = parts[1].strip()
-                # role_mention is "<@&12345>"
-                # Extract digits
-                import re
-                match = re.search(r'\d+', role_mention)
-                if match:
-                    target_role_id = int(match.group())
-                break
+                # Regex for role mention: <@&(\d+)>
+                role_match = re.search(r'<@&(\d+)>', line)
+                if role_match:
+                    target_role_id = int(role_match.group(1))
+                    break
         
         if target_role_id:
             role = guild.get_role(target_role_id)
@@ -183,6 +177,7 @@ class RoleBot(discord.Client):
                         await member.remove_roles(role)
                         print(f"Removed role {role.name} from {member.name}")
                 except discord.Forbidden:
-                    print("Error: Missing permissions to manage roles.")
+                    print(f"Error: Missing permissions to manage roles (Target Role: {role.name}).")
             else:
-                print("Error: Role not found in guild.")
+                print(f"Error: Role ID {target_role_id} not found in guild.")
+

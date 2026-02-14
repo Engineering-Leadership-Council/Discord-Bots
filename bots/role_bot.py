@@ -30,13 +30,13 @@ class RoleBot(discord.Client):
         if message.content.startswith('!setup_reaction'):
             # Check Perms
             if not message.channel.permissions_for(message.author).administrator:
-                await message.reply("❌ `sudo` access denied.")
+                await message.reply("`sudo` access denied.")
                 return
 
             try:
                 # 1. Extract Target Channel
                 if not message.channel_mentions:
-                    await message.reply("❌ Target channel not found.")
+                    await message.reply("Target channel not found.")
                     return
                 target_channel = message.channel_mentions[0]
 
@@ -89,10 +89,10 @@ class RoleBot(discord.Client):
                         print(f"Failed to add reaction {emoji}: {e}")
                         # Continue adding others even if one fails
                 
-                await message.reply(f"✅ Reaction Role message created in {target_channel.mention}")
+                await message.reply(f"Reaction Role message created in {target_channel.mention}")
 
             except Exception as e:
-                await message.reply(f"❌ Error: {e}")
+                await message.reply(f"Error: {e}")
                 print(f"Error in setup_reaction: {e}")
 
         # Command: !fix_roles <remove_role_id> <pre_may_role_id> <post_may_role_id>
@@ -225,7 +225,7 @@ class RoleBot(discord.Client):
     async def chat_command_fix_roles(self, message):
          # Command: !fix_roles <remove_role_id> <pre_may_role_id> <post_may_role_id>
         if not message.author.guild_permissions.administrator:
-            await message.reply("❌ Administrator permissions required.")
+            await message.reply("Administrator permissions required.")
             return
 
         parts = message.content.split()
@@ -245,7 +245,7 @@ class RoleBot(discord.Client):
                 pre_may_role_id = int(re.sub(r'\D', '', parts[2]))
                 post_may_role_id = int(re.sub(r'\D', '', parts[3]))
             except ValueError:
-                await message.reply("❌ Invalid arguments. Please Mention the 3 roles or provide their IDs.")
+                await message.reply("Invalid arguments. Please Mention the 3 roles or provide their IDs.")
                 return
 
         guild = message.guild
@@ -254,11 +254,11 @@ class RoleBot(discord.Client):
         post_may_role = guild.get_role(post_may_role_id)
 
         if not pre_may_role or not post_may_role:
-             await message.reply("❌ One or more target roles not found.")
+             await message.reply("One or more target roles not found.")
              return
         
         if not remove_role:
-            await message.reply(f"❌ Role to remove (ID: {remove_role_id}) not found in this guild.")
+            await message.reply(f"Role to remove (ID: {remove_role_id}) not found in this guild.")
             return
 
         # Date Threshold: May 1st, 2024
@@ -273,7 +273,7 @@ class RoleBot(discord.Client):
         target_members = [m for m in guild.members if remove_role in m.roles]
         
         status_msg = await message.reply(
-            f"🔄 **Starting Migration**\n"
+            f"**Starting Migration**\n"
             f"Total Members: {len(guild.members)}\n"
             f"Members with Role '{remove_role.name}': {len(target_members)}\n"
             f"Processing..."
@@ -285,7 +285,7 @@ class RoleBot(discord.Client):
             processed_count += 1
             if processed_count % 25 == 0:
                 try:
-                    await status_msg.edit(content=f"🔄 Processing... {processed_count}/{len(guild.members)} members checked.")
+                    await status_msg.edit(content=f"Processing... {processed_count}/{len(guild.members)} members checked.")
                 except:
                     pass
 
@@ -318,7 +318,7 @@ class RoleBot(discord.Client):
                 except Exception as e:
                     print(f"Error processing {member.name}: {e}")
         
-        await status_msg.edit(content=f"✅ **Role Migration Complete**\n"
+        await status_msg.edit(content=f"**Role Migration Complete**\n"
                                       f"Checked {len(guild.members)} members.\n"
                                       f"Removed Old Role from: {count_removed} members\n"
                                       f"Assigned Pre-May Role: {count_pre}\n"

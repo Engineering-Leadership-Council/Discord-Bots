@@ -31,7 +31,7 @@ class EventModal(ui.Modal, title="Add New Event"):
         # Ack the modal first to avoid timeout, but we need to send a follow-up for the image
         await interaction.response.send_message(
             f"Event details for **{self.name.value}** recorded.\n"
-            "📷 **Please upload an image for the event now.**\n"
+            "**Please upload an image for the event now.**\n"
             "*(Reply with an image attachment, or type `skip` to proceed without one)*",
             ephemeral=True
         )
@@ -48,7 +48,7 @@ class EventModal(ui.Modal, title="Add New Event"):
             
             if msg.attachments:
                 image_url = msg.attachments[0].url
-                await interaction.followup.send("✅ Image received!", ephemeral=True)
+                await interaction.followup.send("Image received!", ephemeral=True)
             elif msg.content.lower().strip() == 'skip':
                 await interaction.followup.send("Skipping image upload.", ephemeral=True)
             else:
@@ -110,15 +110,15 @@ class DeleteEventSelect(ui.Select):
                 if event_to_remove in self.bot.events:
                     self.bot.events.remove(event_to_remove)
                     self.bot.save_events()
-                    await interaction.response.send_message(f"✅ Event **{event_to_remove['name']}** deleted.", ephemeral=True)
+                    await interaction.response.send_message(f"Event **{event_to_remove['name']}** deleted.", ephemeral=True)
                     print(f"Deleted event: {event_to_remove['name']}")
                 else:
-                     await interaction.response.send_message("❌ Event not found (maybe already deleted).", ephemeral=True)
+                     await interaction.response.send_message("Event not found (maybe already deleted).", ephemeral=True)
             else:
-                await interaction.response.send_message("❌ Invalid selection.", ephemeral=True)
+                await interaction.response.send_message("Invalid selection.", ephemeral=True)
         except Exception as e:
             print(f"Error in delete callback: {e}")
-            await interaction.response.send_message(f"❌ Error: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(f"Error: {str(e)}", ephemeral=True)
 
 class DeleteEventView(ui.View):
     def __init__(self, events: List[Dict], bot: 'EventBot'):
@@ -138,7 +138,7 @@ class EventBot(discord.Client):
 
     def load_data(self) -> Dict:
         if not os.path.exists(self.events_file):
-            return {'events': []}
+            return {'events': [], 'upcoming_message_id': None, 'upcoming_channel_id': None}
         try:
             with open(self.events_file, 'r') as f:
                 content = json.load(f)
@@ -193,7 +193,7 @@ class EventBot(discord.Client):
         next_events = future_events[:3]
 
         embed = discord.Embed(
-            title="📅 Upcoming Events Filter",
+            title="Upcoming Events Filter",
             description="Here are the next 3 scheduled events:",
             color=0x3498DB
         )
@@ -207,7 +207,7 @@ class EventBot(discord.Client):
             
             embed.add_field(
                 name=f"{time_display} | {event['name']}",
-                value=f"📍 **{location}**\n{event['description']}",
+                value=f"Location: **{location}**\n{event['description']}",
                 inline=False
             )
         
@@ -260,7 +260,7 @@ class EventBot(discord.Client):
                         if channel:
                             embed = discord.Embed(
                                 title=f"Event Starting: {event['name']}",
-                                description=f"📍 **{event.get('location', 'No location')}**\n{event['description']}",
+                                description=f"Location: **{event.get('location', 'No location')}**\n{event['description']}",
                                 color=0x2ECC71,
                                 timestamp=now
                             )
@@ -302,9 +302,7 @@ class EventBot(discord.Client):
              # The user asked: "get rid of the dashboard feature but make sure it will still send the update about the event"
              # Previously !setup_dashboard created the view with "Add Event" button.
              # Now we have no buttons. How do they add events?
-             # I should probably provide a command `!add_event` that sends a button to click, or just use interaction?
-             # You can't send a modal to a message. You need an interaction (slash command or button).
-             # So I will add a simple command `!add_event` that sends a message with an "Add Event" button to trigger the modal.
+             # I should probably provide a command `!add_event` that sends a message with an "Add Event" button to trigger the modal.
              
              view = ui.View()
              button = ui.Button(label="Add Event", style=discord.ButtonStyle.green)
@@ -342,7 +340,7 @@ class EventBot(discord.Client):
             next_events = future_events[:3]
 
             embed = discord.Embed(
-                title="📅 Next 3 Upcoming Events",
+                title="Next 3 Upcoming Events",
                 color=0x3498DB
             )
             
@@ -352,7 +350,7 @@ class EventBot(discord.Client):
                 
                 embed.add_field(
                     name=f"{time_display} | {event['name']}",
-                    value=f"📍 **{location}**\n{event['description']}",
+                    value=f"Location: **{location}**\n{event['description']}",
                     inline=False
                 )
             
@@ -367,12 +365,12 @@ class EventBot(discord.Client):
 
             sorted_events = sorted(self.events, key=lambda x: x['time'])
             
-            embed = discord.Embed(title="📅 All Scheduled Events", color=0x3498DB)
+            embed = discord.Embed(title="All Scheduled Events", color=0x3498DB)
             for event in sorted_events:
                  location = event.get('location', 'No location')
                  embed.add_field(
                     name=f"{event['time']} | {event['name']}",
-                    value=f"📍 {location}",
+                    value=f"Location: {location}",
                     inline=False
                  )
             await message.channel.send(embed=embed)
@@ -383,7 +381,7 @@ class EventBot(discord.Client):
             # if not message.author.guild_permissions.administrator: ...
 
             view = ui.View()
-            button = ui.Button(label="Delete Event", style=discord.ButtonStyle.red, emoji="🗑️")
+            button = ui.Button(label="Delete Event", style=discord.ButtonStyle.red)
 
             async def delete_button_callback(interaction):
                 try:
@@ -399,7 +397,7 @@ class EventBot(discord.Client):
                     await interaction.response.send_message("Select an event to delete:", view=del_view, ephemeral=True)
                 except Exception as e:
                     print(f"Error in delete_button_callback: {e}")
-                    await interaction.response.send_message("❌ An error occurred while opening the menu.", ephemeral=True)
+                    await interaction.response.send_message("An error occurred while opening the menu.", ephemeral=True)
 
             button.callback = delete_button_callback
             view.add_item(button)
@@ -408,7 +406,7 @@ class EventBot(discord.Client):
         # Command: !setup_upcoming (Admin Only)
         if message.content.startswith('!setup_upcoming'):
              if not message.author.guild_permissions.administrator:
-                await message.channel.send("❌ You need Administrator permissions to setup the upcoming events dashboard.")
+                await message.channel.send("You need Administrator permissions to setup the upcoming events dashboard.")
                 return
             
              # Send initial message

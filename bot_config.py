@@ -4,6 +4,7 @@
 ENABLE_ROLE_BOT = True
 ROLE_BOT_NICKNAME = "Sudo Master"
 ROLE_BOT_FOOTER = "Obtain your roles!"
+AUTO_JOIN_ROLE_ID = 0 # Replace with actual Role ID to give on join
 
 # Welcome Bot
 ENABLE_WELCOME_BOT = True

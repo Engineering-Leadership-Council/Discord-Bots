@@ -95,6 +95,10 @@ class RoleBot(discord.Client):
                 await message.reply(f"❌ Error: {e}")
                 print(f"Error in setup_reaction: {e}")
 
+        # Command: !fix_roles <remove_role_id> <pre_may_role_id> <post_may_role_id>
+        if message.content.startswith('!fix_roles'):
+            await self.chat_command_fix_roles(message)
+
     async def on_raw_reaction_add(self, payload):
         await self.handle_reaction(payload, add=True)
 
@@ -204,4 +208,91 @@ class RoleBot(discord.Client):
                     print(f"Error: Missing permissions to manage roles (Target Role: {role.name}).")
             else:
                 print(f"Error: Role ID {target_role_id} not found in guild.")
+
+    async def on_member_join(self, member):
+        """Automatically assign a role when a new member joins."""
+        if bot_config.AUTO_JOIN_ROLE_ID:
+            role = member.guild.get_role(bot_config.AUTO_JOIN_ROLE_ID)
+            if role:
+                try:
+                    await member.add_roles(role)
+                    print(f"Auto-assigned role {role.name} to {member.name}")
+                except Exception as e:
+                    print(f"Failed to auto-assign role to {member.name}: {e}")
+            else:
+                print(f"Auto-join role ID {bot_config.AUTO_JOIN_ROLE_ID} not found.")
+
+    async def chat_command_fix_roles(self, message):
+         # Command: !fix_roles <remove_role_id> <pre_may_role_id> <post_may_role_id>
+        if not message.author.guild_permissions.administrator:
+            await message.reply("❌ Administrator permissions required.")
+            return
+
+        parts = message.content.split()
+        if len(parts) != 4:
+            await message.reply("Usage: `!fix_roles <exclude_role_id> <pre_may_role_id> <post_may_role_id>`")
+            return
+
+        try:
+            remove_role_id = int(parts[1])
+            pre_may_role_id = int(parts[2])
+            post_may_role_id = int(parts[3])
+        except ValueError:
+            await message.reply("❌ Invalid role IDs. Please use integer IDs.")
+            return
+
+        guild = message.guild
+        remove_role = guild.get_role(remove_role_id)
+        pre_may_role = guild.get_role(pre_may_role_id)
+        post_may_role = guild.get_role(post_may_role_id)
+
+        if not pre_may_role or not post_may_role:
+             await message.reply("❌ One or more target roles not found.")
+             return
+
+        # Date Threshold: May 1st, 2024
+        # datetime needs to be offset-aware because joined_at is offset-aware (UTC)
+        from datetime import datetime, timezone
+        cutoff_date = datetime(2024, 5, 1, tzinfo=timezone.utc)
+        
+        count_removed = 0
+        count_pre = 0
+        count_post = 0
+        
+        status_msg = await message.reply("🔄 Processing roles... This may take a while.")
+
+        for member in guild.members:
+            # Check if they have the role to be removed/swapped
+            # The user said: "remove a role and give people another role... based on whether or not the account joined prior to may 2024"
+            # It implies we only act on people who *have* the role to be removed? 
+            # OR does it mean "for everyone, ensure they have the right role"?
+            # "allow an admin to remove a role and give people another role automatically"
+            # I will assume we only process members who HAVE the `remove_role_id`. 
+            # If `remove_role_id` is 0 or something, maybe they want to check everyone? 
+            # I'll stick to acting on members who have the role to be removed, as implied by "remove a role".
+            
+            member_role_ids = [r.id for r in member.roles]
+            
+            if remove_role_id in member_role_ids:
+                try:
+                    # Remove old role
+                    if remove_role:
+                        await member.remove_roles(remove_role)
+                        count_removed += 1
+                    
+                    # Add new role based on join date
+                    if member.joined_at < cutoff_date:
+                        await member.add_roles(pre_may_role)
+                        count_pre += 1
+                    else:
+                        await member.add_roles(post_may_role)
+                        count_post += 1
+                        
+                except Exception as e:
+                    print(f"Error processing {member.name}: {e}")
+        
+        await status_msg.edit(content=f"✅ **Role Migration Complete**\n"
+                                      f"Removed Old Role from: {count_removed} members\n"
+                                      f"Assigned Pre-May Role: {count_pre}\n"
+                                      f"Assigned Post-May Role: {count_post}")
 

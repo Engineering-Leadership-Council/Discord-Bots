@@ -233,14 +233,20 @@ class RoleBot(discord.Client):
             await message.reply("Usage: `!fix_roles <exclude_role_id> <pre_may_role_id> <post_may_role_id>`")
             return
 
-        try:
-            # Clean inputs to handle raw IDs (123) or Mentions (<@&123>)
-            remove_role_id = int(re.sub(r'\D', '', parts[1]))
-            pre_may_role_id = int(re.sub(r'\D', '', parts[2]))
-            post_may_role_id = int(re.sub(r'\D', '', parts[3]))
-        except ValueError:
-            await message.reply("❌ Invalid role IDs. Please use integer IDs or Role Mentions.")
-            return
+        if len(message.role_mentions) == 3:
+            # Use mentions if exactly 3 are provided
+            remove_role_id = message.role_mentions[0].id
+            pre_may_role_id = message.role_mentions[1].id
+            post_may_role_id = message.role_mentions[2].id
+        else:
+            try:
+                # Clean inputs to handle raw IDs (123) or Mentions (<@&123>) if manual ID entry
+                remove_role_id = int(re.sub(r'\D', '', parts[1]))
+                pre_may_role_id = int(re.sub(r'\D', '', parts[2]))
+                post_may_role_id = int(re.sub(r'\D', '', parts[3]))
+            except ValueError:
+                await message.reply("❌ Invalid arguments. Please Mention the 3 roles or provide their IDs.")
+                return
 
         guild = message.guild
         remove_role = guild.get_role(remove_role_id)

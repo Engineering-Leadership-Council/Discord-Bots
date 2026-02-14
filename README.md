@@ -130,6 +130,9 @@ ENABLE_EVENT_BOT = True
 # Branding
 ROLE_BOT_NICKNAME = "Sudo Master"
 EVENT_BOT_NICKNAME = "The Event Loop"
+
+# Welcome Messages
+WELCOME_PUNS = [...] # Add your own puns here!
 ```
 
 ---

@@ -299,19 +299,17 @@ class EventBot(discord.Client):
                  )
             await message.channel.send(embed=embed)
 
-        # Command: !delete_event (Admin Only)
+        # Command: !delete_event (Public Access)
         if message.content.startswith('!delete_event'):
-            if not message.author.guild_permissions.administrator:
-                await message.channel.send("❌ You need Administrator permissions to delete events.")
-                return
+            # Admin check removed as requested
+            # if not message.author.guild_permissions.administrator: ...
 
             view = ui.View()
             button = ui.Button(label="Delete Event", style=discord.ButtonStyle.red, emoji="🗑️")
 
             async def delete_button_callback(interaction):
-                if not interaction.user.guild_permissions.administrator:
-                    await interaction.response.send_message("❌ You need Administrator permissions.", ephemeral=True)
-                    return
+                # Admin check removed as requested
+                # if not interaction.user.guild_permissions.administrator: ...
                 
                 if not self.events:
                     await interaction.response.send_message("No events to delete.", ephemeral=True)

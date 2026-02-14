@@ -78,6 +78,51 @@ class EventModal(ui.Modal, title="Add New Event"):
         
         print(f"Event added via Modal: {self.name.value}")
 
+class EventBot(discord.Client):
+    pass # Type hinting for circular reference
+
+class DeleteEventSelect(ui.Select):
+    def __init__(self, events: List[Dict], bot: 'EventBot'):
+        self.bot = bot
+        options = []
+        # Sort events by time
+        sorted_events = sorted(events, key=lambda x: x['time'])
+        
+        for i, event in enumerate(sorted_events):
+            # Value is index in the original list? No, better use something unique if possible.
+            # But we don't have unique IDs. 
+            # We can pass the index in the SORTED list, but removal effectively relies on object identity or matching fields.
+            # Let's use "time|name" as value to identify it.
+            label = f"{event['time']} - {event['name']}"
+            if len(label) > 100: label = label[:97] + "..."
+            value = f"{event['time']}|{event['name']}"
+            options.append(discord.SelectOption(label=label, value=value))
+            
+            if len(options) >= 25: break # Discord limit
+
+        super().__init__(placeholder="Select an event to delete...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        selected_value = self.values[0]
+        # Find and remove
+        event_to_remove = None
+        for event in self.bot.events:
+            if f"{event['time']}|{event['name']}" == selected_value:
+                event_to_remove = event
+                break
+        
+        if event_to_remove:
+            self.bot.events.remove(event_to_remove)
+            self.bot.save_events()
+            await interaction.response.send_message(f"✅ Event **{event_to_remove['name']}** deleted.", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Event not found (maybe already deleted).", ephemeral=True)
+
+class DeleteEventView(ui.View):
+    def __init__(self, events: List[Dict], bot: 'EventBot'):
+        super().__init__()
+        self.add_item(DeleteEventSelect(events, bot))
+
 # --- Main Bot Class ---
 
 class EventBot(discord.Client):
@@ -232,4 +277,36 @@ class EventBot(discord.Client):
             
             embed.set_footer(text="Use !add_event to schedule more!")
             await message.channel.send(embed=embed)
+
+        # Command: !list_events (Lists ALL events)
+        if message.content.startswith('!list_events'):
+            if not self.events:
+                await message.channel.send("No events found.")
+                return
+
+            sorted_events = sorted(self.events, key=lambda x: x['time'])
+            
+            embed = discord.Embed(title="📅 All Scheduled Events", color=0x3498DB)
+            for event in sorted_events:
+                 location = event.get('location', 'No location')
+                 embed.add_field(
+                    name=f"{event['time']} | {event['name']}",
+                    value=f"📍 {location}",
+                    inline=False
+                 )
+            await message.channel.send(embed=embed)
+
+        # Command: !delete_event (Admin Only)
+        if message.content.startswith('!delete_event'):
+            # Check permissions
+            if not message.author.guild_permissions.administrator:
+                await message.channel.send("❌ You need Administrator permissions to delete events.")
+                return
+            
+            if not self.events:
+                await message.channel.send("No events to delete.")
+                return
+
+            view = DeleteEventView(self.events, self)
+            await message.channel.send("Select an event to delete:", view=view)
 

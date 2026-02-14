@@ -301,15 +301,27 @@ class EventBot(discord.Client):
 
         # Command: !delete_event (Admin Only)
         if message.content.startswith('!delete_event'):
-            # Check permissions
             if not message.author.guild_permissions.administrator:
                 await message.channel.send("❌ You need Administrator permissions to delete events.")
                 return
-            
-            if not self.events:
-                await message.channel.send("No events to delete.")
-                return
 
-            view = DeleteEventView(self.events, self)
-            await message.channel.send("Select an event to delete:", view=view)
+            view = ui.View()
+            button = ui.Button(label="Delete Event", style=discord.ButtonStyle.red, emoji="🗑️")
+
+            async def delete_button_callback(interaction):
+                if not interaction.user.guild_permissions.administrator:
+                    await interaction.response.send_message("❌ You need Administrator permissions.", ephemeral=True)
+                    return
+                
+                if not self.events:
+                    await interaction.response.send_message("No events to delete.", ephemeral=True)
+                    return
+
+                # Create the select view dynamically to get the latest events
+                del_view = DeleteEventView(self.events, self)
+                await interaction.response.send_message("Select an event to delete:", view=del_view, ephemeral=True)
+
+            button.callback = delete_button_callback
+            view.add_item(button)
+            await message.channel.send("Click to delete an event:", view=view)
 

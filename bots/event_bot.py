@@ -328,15 +328,10 @@ class EventBot(discord.Client):
 
         # Setup Command - Add Event via Modal
         if message.content.startswith('!add_event'):
-             await message.channel.send("Please fill out the form:", view=None) # Modal needs interaction, stick to modal in command?
-             # Actually, modals respond to interactions. 
-             # Let's keep a simple command to trigger the modal if they want, 
-             # OR since I removed the dashboard, maybe they need a command to open the modal?
-             # The user asked: "get rid of the dashboard feature but make sure it will still send the update about the event"
-             # Previously !setup_dashboard created the view with "Add Event" button.
-             # Now we have no buttons. How do they add events?
-             # I should probably provide a command `!add_event` that sends a message with an "Add Event" button to trigger the modal.
-             
+             if not message.author.guild_permissions.administrator:
+                 await message.channel.send("You need Administrator permissions to use this command.")
+                 return
+
              view = ui.View()
              button = ui.Button(label="Add Event", style=discord.ButtonStyle.green)
              
@@ -370,19 +365,21 @@ class EventBot(discord.Client):
                  )
             await message.channel.send(embed=embed)
 
-        # Command: !delete_event (Public Access)
+        # Command: !delete_event (Admin Access)
         if message.content.startswith('!delete_event'):
-            # Admin check removed as requested
-            # if not message.author.guild_permissions.administrator: ...
+            if not message.author.guild_permissions.administrator:
+                await message.channel.send("You need Administrator permissions to use this command.")
+                return
 
             view = ui.View()
             button = ui.Button(label="Delete Event", style=discord.ButtonStyle.red)
 
             async def delete_button_callback(interaction):
                 try:
-                    # Admin check removed as requested
-                    # if not interaction.user.guild_permissions.administrator: ...
-                    
+                    if not interaction.user.guild_permissions.administrator:
+                         await interaction.response.send_message("You need Administrator permissions to use this button.", ephemeral=True)
+                         return
+
                     if not self.events:
                         await interaction.response.send_message("No events to delete.", ephemeral=True)
                         return

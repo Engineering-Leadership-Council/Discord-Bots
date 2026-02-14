@@ -1,4 +1,4 @@
-# 🤖 ELC Discord Bots
+# ELC Discord Bots
 
 **Professional Automation for the Engineering Leadership Council**
 
@@ -6,9 +6,9 @@ This repository hosts a suite of custom-built Discord bots designed to automate 
 
 ---
 
-## ✨ Features & Bot Modules
+## Features & Bot Modules
 
-### 1. 📅 The Event Loop (Event Bot)
+### 1. The Event Loop (Event Bot)
 **Status:** `Active` | **Prefix:** `!`
 
 A comprehensive event management system that keeps the community informed.
@@ -30,7 +30,7 @@ A comprehensive event management system that keeps the community informed.
 
 ---
 
-### 2. 🛡️ Sudo Master (Role Bot)
+### 2. Sudo Master (Role Bot)
 **Status:** `Active` | **Prefix:** `!`
 
 Manages role assignments, self-service roles, and bulk migrations.
@@ -48,7 +48,7 @@ Manages role assignments, self-service roles, and bulk migrations.
 
 ---
 
-### 3. 👋 Jeff the Doorman (Welcome Bot)
+### 3. Jeff the Doorman (Welcome Bot)
 **Status:** `Active` | **Trigger:** `on_member_join`
 
 Ensures every new member receives a warm welcome and direction.
@@ -60,7 +60,7 @@ Ensures every new member receives a warm welcome and direction.
 
 ---
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 These bots are designed to run as a **Systemd Service** on a Raspberry Pi or Ubuntu server, ensuring they start on boot and restart automatically if they crash.
 
@@ -97,7 +97,7 @@ chmod +x scripts/setup_main.sh scripts/setup_fork.sh
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables (`.env`)
 The bot relies on a `.env` file for secrets and channel IDs.
@@ -134,7 +134,7 @@ EVENT_BOT_NICKNAME = "The Event Loop"
 
 ---
 
-## 🔄 Management & Updates
+## Management & Updates
 
 ### Auto-Update System
 The service is configured to **automatically pull the latest code** from GitHub every time it restarts. To update the bots, simply push to the `main` branch and then restart the service on the Pi.

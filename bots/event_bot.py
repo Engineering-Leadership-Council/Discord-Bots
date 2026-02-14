@@ -202,7 +202,7 @@ class EventBot(discord.Client):
         
         if not next_events:
             embed = discord.Embed(
-                title="📅 Upcoming Events",
+                title="Upcoming Events",
                 description="No upcoming events scheduled.",
                 color=0x95A5A6
             )
@@ -211,7 +211,7 @@ class EventBot(discord.Client):
         
         # Header Embed
         header = discord.Embed(
-            title="📅 Upcoming Events",
+            title="Upcoming Events",
             description="Here is what is coming up next:",
             color=0x2C3E50
         )
@@ -231,7 +231,7 @@ class EventBot(discord.Client):
             
             description_text = (
                 f"**{date_str}** at **{time_str}**\n"
-                f"📍 **{event.get('location', 'No location')}**\n\n"
+                f"Location: **{event.get('location', 'No location')}**\n\n"
                 f"{event['description']}"
             )
             

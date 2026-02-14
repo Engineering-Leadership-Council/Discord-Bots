@@ -234,11 +234,12 @@ class RoleBot(discord.Client):
             return
 
         try:
-            remove_role_id = int(parts[1])
-            pre_may_role_id = int(parts[2])
-            post_may_role_id = int(parts[3])
+            # Clean inputs to handle raw IDs (123) or Mentions (<@&123>)
+            remove_role_id = int(re.sub(r'\D', '', parts[1]))
+            pre_may_role_id = int(re.sub(r'\D', '', parts[2]))
+            post_may_role_id = int(re.sub(r'\D', '', parts[3]))
         except ValueError:
-            await message.reply("❌ Invalid role IDs. Please use integer IDs.")
+            await message.reply("❌ Invalid role IDs. Please use integer IDs or Role Mentions.")
             return
 
         guild = message.guild

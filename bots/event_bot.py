@@ -94,6 +94,9 @@ class DeleteEventSelect(ui.Select):
             full_str = f"{event['time']}|{event['name']}"
             value = full_str[:100]  # Truncate to ensure it fits
             
+            label = f"{event['time']} - {event['name']}"
+            if len(label) > 100: label = label[:97] + "..."
+
             options.append(discord.SelectOption(label=label, value=value))
             
             if len(options) >= 25: break # Discord limit
@@ -308,16 +311,20 @@ class EventBot(discord.Client):
             button = ui.Button(label="Delete Event", style=discord.ButtonStyle.red, emoji="🗑️")
 
             async def delete_button_callback(interaction):
-                # Admin check removed as requested
-                # if not interaction.user.guild_permissions.administrator: ...
-                
-                if not self.events:
-                    await interaction.response.send_message("No events to delete.", ephemeral=True)
-                    return
+                try:
+                    # Admin check removed as requested
+                    # if not interaction.user.guild_permissions.administrator: ...
+                    
+                    if not self.events:
+                        await interaction.response.send_message("No events to delete.", ephemeral=True)
+                        return
 
-                # Create the select view dynamically to get the latest events
-                del_view = DeleteEventView(self.events, self)
-                await interaction.response.send_message("Select an event to delete:", view=del_view, ephemeral=True)
+                    # Create the select view dynamically to get the latest events
+                    del_view = DeleteEventView(self.events, self)
+                    await interaction.response.send_message("Select an event to delete:", view=del_view, ephemeral=True)
+                except Exception as e:
+                    print(f"Error in delete_button_callback: {e}")
+                    await interaction.response.send_message("❌ An error occurred while opening the menu.", ephemeral=True)
 
             button.callback = delete_button_callback
             view.add_item(button)

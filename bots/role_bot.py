@@ -250,9 +250,12 @@ class RoleBot(discord.Client):
         if not pre_may_role or not post_may_role:
              await message.reply("❌ One or more target roles not found.")
              return
+        
+        if not remove_role:
+            await message.reply(f"❌ Role to remove (ID: {remove_role_id}) not found in this guild.")
+            return
 
         # Date Threshold: May 1st, 2024
-        # datetime needs to be offset-aware because joined_at is offset-aware (UTC)
         from datetime import datetime, timezone
         cutoff_date = datetime(2024, 5, 1, tzinfo=timezone.utc)
         
@@ -260,8 +263,17 @@ class RoleBot(discord.Client):
         count_pre = 0
         count_post = 0
         
+        # Pre-calculation
+        target_members = [m for m in guild.members if remove_role in m.roles]
+        
+        status_msg = await message.reply(
+            f"🔄 **Starting Migration**\n"
+            f"Total Members: {len(guild.members)}\n"
+            f"Members with Role '{remove_role.name}': {len(target_members)}\n"
+            f"Processing..."
+        )
+        
         processed_count = 0
-        status_msg = await message.reply(f"🔄 Processing roles for {len(guild.members)} members... This may take a while.")
 
         for member in guild.members:
             processed_count += 1

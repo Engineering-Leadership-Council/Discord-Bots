@@ -155,8 +155,54 @@ class StreamBot(discord.Client):
                         # Force update if status changed or time interval passed
                         if (now - last_update >= self.update_interval) or (current_status != last_status):
                             
+                            # Fetch Printer Stats
+                            printer_url = os.getenv(f'PRINTER_{index}_URL')
+                            if not printer_url and url:
+                                # Try to guess from stream URL
+                                try:
+                                    from urllib.parse import urlparse
+                                    parsed = urlparse(url)
+                                    if parsed.netloc:
+                                        # Default Moonraker port
+                                        host = parsed.netloc.split(':')[0]
+                                        printer_url = f"http://{host}:7125"
+                                except:
+                                    pass
+
+                            print_stats = {}
+                            if printer_url:
+                                print_stats = await self.fetch_printer_status(session, printer_url)
+
                             embed.color = color
-                            embed.set_footer(text=f"Status: {current_status} • ID: {index}")
+                            
+                            # Update Footer with Status
+                            footer_text = f"Status: {current_status} • ID: {index}"
+                            if print_stats.get('state') == "printing":
+                                progress = print_stats.get('progress', 0) * 100
+                                footer_text += f" • {progress:.1f}%"
+                            embed.set_footer(text=footer_text)
+
+                            # Update Description with Print Details
+                            description = ""
+                            if print_stats.get('filename'):
+                                description += f"**File:** {print_stats['filename']}\n"
+                            
+                            if print_stats.get('print_duration') is not None:
+                                import datetime
+                                elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
+                                description += f"**Elapsed:** {elapsed}\n"
+                                
+                                # Estimate Time Left
+                                if print_stats.get('progress', 0) > 0:
+                                    total_time = print_stats['print_duration'] / print_stats['progress']
+                                    left = total_time - print_stats['print_duration']
+                                    left_str = str(datetime.timedelta(seconds=int(left)))
+                                    description += f"**Est. Time Left:** {left_str}\n"
+
+                            if description:
+                                embed.description = description
+                            else:
+                                embed.description = None # Clear if no print info
                             
                             try:
                                 if not message:
@@ -185,6 +231,28 @@ class StreamBot(discord.Client):
                     logger.error(f"Stream Loop Crash {title}: {e}")
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, 30)
+
+    async def fetch_printer_status(self, session, base_url):
+        try:
+            # Moonraker / Klipper API
+            url = f"{base_url}/printer/objects/query?print_stats&display_status"
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    result = data.get('result', {}).get('status', {})
+                    
+                    stats = result.get('print_stats', {})
+                    display = result.get('display_status', {})
+                    
+                    return {
+                        'filename': stats.get('filename'),
+                        'print_duration': stats.get('print_duration'),
+                        'state': stats.get('state'),
+                        'progress': display.get('progress', 0)
+                    }
+        except Exception:
+            pass
+        return {}
 
     async def on_message(self, message):
         # Simple command to force restart streams if needed

@@ -268,6 +268,13 @@ def check_sdcp(index, mainboard_id=None):
                 "Topic": topic,
                 "Data": {"Cmd": "GetStatus", "MainboardID": mainboard_id, "From": "Client"} 
             }))
+
+            # Try 5: Cmd 258 (Control?) sent to mainboard topic
+            cmds_to_try.append(json.dumps({
+                "Id": f"{int(time.time()*1000)+4}", 
+                "Topic": topic,
+                "Data": {"Cmd": 258, "MainboardID": mainboard_id, "From": "Client"} 
+            }))
             
         else:
              cmds_to_try.append(json.dumps({

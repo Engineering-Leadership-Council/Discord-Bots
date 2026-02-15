@@ -3,6 +3,7 @@ import asyncio
 import aiohttp
 import os
 import logging
+import hashlib
 from io import BytesIO
 import bot_config
 import sys
@@ -144,6 +145,8 @@ class StreamBot(discord.Client):
         async with aiohttp.ClientSession(headers=headers) as session:
             backoff = 1
             last_update = 0
+            last_image_hash = None
+            filename_toggle = False
             
             while not self.is_closed():
                 try:
@@ -263,13 +266,27 @@ class StreamBot(discord.Client):
                                     message = await channel.send(embed=embed)
 
                                 if jpg_data:
-                                    file = discord.File(BytesIO(jpg_data), filename="stream.jpg")
-                                    embed.set_image(url="attachment://stream.jpg")
-                                    await message.edit(embed=embed, attachments=[file])
+                                    # Calculate Hash for Deduplication
+                                    cur_hash = hashlib.md5(jpg_data).hexdigest()
+                                    
+                                    if cur_hash == last_image_hash:
+                                        # Image hasn't changed, just update text
+                                        await message.edit(embed=embed)
+                                    else:
+                                        # Image changed, rotate filename to help client cache busting/transition
+                                        filename_toggle = not filename_toggle
+                                        filename = "stream_1.jpg" if filename_toggle else "stream_0.jpg"
+                                        
+                                        file = discord.File(BytesIO(jpg_data), filename=filename)
+                                        embed.set_image(url=f"attachment://{filename}")
+                                        await message.edit(embed=embed, attachments=[file])
+                                        
+                                        last_image_hash = cur_hash
                                 else:
                                     # Offline - No image
                                     embed.set_image(url=None)
                                     await message.edit(embed=embed, attachments=[])
+                                    last_image_hash = None
                                 
                                 last_status = current_status
                                 last_update = now

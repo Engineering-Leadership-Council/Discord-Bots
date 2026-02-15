@@ -61,18 +61,30 @@ Ensures every new member receives a warm welcome and direction.
 ---
 
 ### 4. Stream Bot (Experimental)
-**Status:** `Standalone` | **File:** `stream_bot.py`
+**Status:** `Active` | **Prefix:** `None`
 
-A standalone script to stream MJPEG video from a local network source to a Discord channel.
+Streams MJPEG video from local network sources to a Discord channel. Supports up to 5 concurrent streams.
 
-#### **Setup:**
-1.  Add `STREAM_BOT_TOKEN=your_token` to your `.env` file.
-2.  (Optional) Add `STREAM_CHANNEL_ID=your_channel_id` to `.env`.
-3.  Run the bot: `python stream_bot.py`.
+#### **Configuration (.env):**
+1.  Add `STREAM_BOT_TOKEN`.
+2.  Set `STREAM_CHANNEL_ID` to the channel where streams should appear.
+3.  Configure streams using the pattern `STREAM_X_URL` and `STREAM_X_TITLE`:
+
+```ini
+STREAM_BOT_TOKEN=...
+STREAM_CHANNEL_ID=123456789 (Developer Mode -> Copy ID)
+
+# Printer 1
+STREAM_1_URL=http://192.168.1.101:8080/video
+STREAM_1_TITLE=Bambu Lab X1C
+
+# Printer 2
+STREAM_2_URL=http://192.168.1.102/webcam/?action=stream
+STREAM_2_TITLE=Prusa MK4
+```
 
 #### **Commands:**
-*   `!start_stream` - Starts streaming video to the current channel.
-*   `!stop_stream` - Stops the stream.
+*   `!restart_streams` - **Admin Only** - Forces the bot to reload stream configurations and restart connections.
 
 
 ---

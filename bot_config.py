@@ -15,6 +15,9 @@ ENABLE_EVENT_BOT = True
 EVENT_BOT_NICKNAME = "The Event Loop"
 EVENT_BOT_FOOTER = "Notifying you of upcoming events!"
 
+# Stream Bot
+ENABLE_STREAM_BOT = True
+
 # Welcome Puns
 WELCOME_PUNS = [
     # --- Electrical Engineering ---

@@ -60,10 +60,20 @@ Ensures every new member receives a warm welcome and direction.
 
 ---
 
-### 4. Stream Bot (Experimental)
+### 4. The G-Code Guardian (Stream Bot)
 **Status:** `Active` | **Prefix:** `None`
 
-Streams MJPEG video from local network sources to a Discord channel. Supports up to 5 concurrent streams.
+Streams MJPEG video from local network sources to a Discord channel. Supports multiple concurrent streams with automatic recovery and status indicators.
+
+#### **Key Features:**
+*   **Multi-Stream Support:** Configure up to 5 streams via `.env`.
+*   **Smart Recovery:** Automatically attempts to reconnect if a stream goes offline (e.g., printer power cycle).
+*   **Status Indicators:** Displays real-time status:
+    *   🟡 **CONNECTING** - Initial connection attempt.
+    *   🟢 **LIVE** - Stream is active and updating.
+    *   🔴 **OFFLINE** - Connection failed (will retry automatically).
+*   **Wake-on-Connect:** Mimics a browser connection to force "lazy" cameras to start streaming immediately.
+*   **Persistence:** Reuses existing stream messages on restart to prevent channel clutter.
 
 #### **Configuration (.env):**
 1.  Add `STREAM_BOT_TOKEN`.
@@ -78,13 +88,13 @@ STREAM_CHANNEL_ID=123456789 (Developer Mode -> Copy ID)
 STREAM_1_URL=http://192.168.1.101:8080/video
 STREAM_1_TITLE=Bambu Lab X1C
 
-# Printer 2
+# Printer 2 (Optional)
 STREAM_2_URL=http://192.168.1.102/webcam/?action=stream
 STREAM_2_TITLE=Prusa MK4
 ```
 
 #### **Commands:**
-*   `!restart_streams` - **Admin Only** - Clears all messages in the stream channel and restarts stream connections.
+*   `!restart_streams` - **Admin Only** - **Purges the last 100 messages** in the stream channel and forces a clean restart of all stream tasks. Use this if streams get stuck or de-synced.
 
 
 ---

@@ -108,6 +108,9 @@ class SDCPClient:
                                     state = "idle"
                                     if status_code == 1:
                                         state = "printing"
+                                    elif status_code == 16:
+                                        # Status 16 seems to be Heating/Starting/Stabilizing
+                                        state = "printing"
                                     elif status_code == 2:
                                         state = "paused"
                                         
@@ -124,6 +127,11 @@ class SDCPClient:
                                         result['progress'] = result['print_duration'] / result['total_duration']
                                     elif print_info.get('TotalLayer', 0) > 0:
                                         result['progress'] = print_info.get('CurrentLayer', 0) / print_info.get('TotalLayer')
+                                    else:
+                                        # Fallback to raw progress if nothing else works (e.g. at start)
+                                        raw_prog = print_info.get('Progress', 0)
+                                        if raw_prog > 0:
+                                            result['progress'] = raw_prog / 100.0
                                         
                                     return result
                                     

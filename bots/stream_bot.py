@@ -200,7 +200,13 @@ class StreamBot(discord.Client):
                                 p_elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
                                 
                                 # Estimate Time Left
-                                if print_stats.get('progress', 0) > 0:
+                                # Priority 1: Use Total Duration from SDCP/Moonraker if available
+                                if print_stats.get('total_duration', 0) > 0:
+                                    left = print_stats['total_duration'] - print_stats['print_duration']
+                                    if left < 0: left = 0
+                                    p_left = str(datetime.timedelta(seconds=int(left)))
+                                # Priority 2: Estimate based on progress
+                                elif print_stats.get('progress', 0) > 0:
                                     total_time = print_stats['print_duration'] / print_stats['progress']
                                     left = total_time - print_stats['print_duration']
                                     p_left = str(datetime.timedelta(seconds=int(left)))

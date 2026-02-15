@@ -98,6 +98,7 @@ class SDCPClient:
                             
                             if msg.type == aiohttp.WSMsgType.TEXT:
                                 data = json.loads(msg.data)
+                                logger.debug(f"SDCP Raw Data: {data}")
                                 
                                 if 'Status' in data and 'PrintInfo' in data['Status']:
                                     status_data = data['Status']

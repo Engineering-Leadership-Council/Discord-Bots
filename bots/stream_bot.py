@@ -256,14 +256,24 @@ class StreamBot(discord.Client):
                     stats = result.get('print_stats', {})
                     display = result.get('display_status', {})
                     
-                    return {
-                        'filename': stats.get('filename'),
-                        'print_duration': stats.get('print_duration'),
-                        'state': stats.get('state'),
-                        'progress': display.get('progress', 0)
-                    }
-        except Exception:
+                    # Check if we have valid data
+                    filename = stats.get('filename')
+                    state = stats.get('state')
+                    
+                    # If we are printing but have no filename, or if response is empty, 
+                    # we might want to try SDCP as a fallback for Elegoo printers.
+                    if state == "printing" and not filename:
+                        logger.warning(f"Moonraker returned 'printing' but no filename for {base_url}. Trying SDCP fallback.")
+                    elif state:
+                         return {
+                            'filename': filename,
+                            'print_duration': stats.get('print_duration'),
+                            'state': state,
+                            'progress': display.get('progress', 0)
+                        }
+        except Exception as e:
             # Moonraker failed, ignore for now and try SDCP
+            logger.debug(f"Moonraker fetch failed for {base_url}: {e}")
             pass
 
         # 2. Try SDCP (Elegoo)
@@ -285,6 +295,8 @@ class StreamBot(discord.Client):
             sdcp_result = await client.fetch_status()
             if sdcp_result:
                  return sdcp_result
+            else:
+                logger.debug(f"SDCP fetch returned empty for {host}")
                  
         except Exception as e:
             logger.error(f"Failed to fetch printer status (SDCP) {base_url}: {e}")

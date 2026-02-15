@@ -114,6 +114,7 @@ class SDCPClient:
                                         2: "Paused",
                                         3: "Error",
                                         4: "Transferring",
+                                        13: "Printing",  # Observed during active print
                                         16: "Starting" # Observed "Heating/Stabilizing"
                                     }
                                     

@@ -104,16 +104,17 @@ class StreamBot(discord.Client):
                         if message is None or (now - last_update >= self.update_interval):
                             file = discord.File(BytesIO(jpg_data), filename="stream.jpg")
                             
-                            embed = discord.Embed(title=title, color=0xFF0000)
-                            embed.set_image(url="attachment://stream.jpg")
-                            embed.set_footer(text=f"Live Feed • ID: {index}")
-
                             try:
                                 if message:
-                                    await message.edit(embed=embed, attachments=[file])
+                                    # Optimization: Only update the attachment.
+                                    # The existing embed points to "attachment://stream.jpg", so replacing 
+                                    # the file with the same name should update the image without re-rendering the whole embed.
+                                    await message.edit(attachments=[file])
                                 else:
-                                    # Check history to find our own previous message to resume?
-                                    # For now, just send a new one.
+                                    # First time: Send Embed + File
+                                    embed = discord.Embed(title=title, color=0xFF0000)
+                                    embed.set_image(url="attachment://stream.jpg")
+                                    embed.set_footer(text=f"Live Feed • ID: {index}")
                                     message = await channel.send(embed=embed, file=file)
                                 
                                 last_update = now

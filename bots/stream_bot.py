@@ -5,6 +5,11 @@ import os
 import logging
 from io import BytesIO
 import bot_config
+import sys
+
+# Add parent directory to path to find utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.sdcp_client import SDCPClient
 
 # Setup Logging
 logger = logging.getLogger("StreamBot")
@@ -16,6 +21,7 @@ class StreamBot(discord.Client):
         self.channel_id = None
         self.update_interval = 3.0 # Seconds
         self.has_started = False
+        self.sdcp_clients = {} # Cache clients per URL/IP
 
     async def on_ready(self):
         logger.info(f"StreamBot logged in as {self.user}")
@@ -235,10 +241,10 @@ class StreamBot(discord.Client):
                     backoff = min(backoff * 2, 30)
 
     async def fetch_printer_status(self, session, base_url):
+        # 1. Try Moonraker / Klipper API first (Standard)
         try:
-            # Moonraker / Klipper API
             url = f"{base_url}/printer/objects/query?print_stats&display_status"
-            async with session.get(url) as response:
+            async with session.get(url, timeout=2) as response:
                 if response.status == 200:
                     data = await response.json()
                     result = data.get('result', {}).get('status', {})
@@ -252,10 +258,33 @@ class StreamBot(discord.Client):
                         'state': stats.get('state'),
                         'progress': display.get('progress', 0)
                     }
-                else:
-                    logger.error(f"Printer API error {url}: Status {response.status}")
+        except Exception:
+            # Moonraker failed, ignore for now and try SDCP
+            pass
+
+        # 2. Try SDCP (Elegoo)
+        try:
+            # Extract Host
+            host = "unknown"
+            if "://" in base_url:
+                host = base_url.split("://")[1].split("/")[0].split(":")[0]
+            else:
+                host = base_url.split(":")[0]
+                
+            # Use cached client or create new
+            if host not in self.sdcp_clients:
+                self.sdcp_clients[host] = SDCPClient(host)
+            
+            client = self.sdcp_clients[host]
+            
+            # Fetch
+            sdcp_result = await client.fetch_status()
+            if sdcp_result:
+                 return sdcp_result
+                 
         except Exception as e:
-            logger.error(f"Failed to fetch printer status {base_url}: {e}")
+            logger.error(f"Failed to fetch printer status (SDCP) {base_url}: {e}")
+            
         return {}
 
     async def on_message(self, message):

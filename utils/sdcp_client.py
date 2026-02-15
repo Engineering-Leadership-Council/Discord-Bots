@@ -105,15 +105,34 @@ class SDCPClient:
                                     print_info = status_data.get('PrintInfo', {})
                                     
                                     status_code = print_info.get('Status', 0)
-                                    state = "idle"
-                                    if status_code == 1:
-                                        state = "printing"
-                                    elif status_code == 16:
-                                        # Status 16 seems to be Heating/Starting/Stabilizing
-                                        state = "printing"
-                                    elif status_code == 2:
-                                        state = "paused"
+                                    
+                                    # Detailed Status Mapping
+                                    # Based on observation and common SDCP usage
+                                    STATUS_MAP = {
+                                        0: "Idle",
+                                        1: "Printing",
+                                        2: "Paused",
+                                        3: "Error",
+                                        4: "Transferring",
+                                        16: "Starting" # Observed "Heating/Stabilizing"
+                                    }
+                                    
+                                    state = STATUS_MAP.get(status_code, f"Status {status_code}")
+                                    
+                                    # Refine "Printing" or "Starting" with Temperature Data
+                                    if state in ["Printing", "Starting", "Status 16"]:
+                                        # Check Temperatures
+                                        bed_curr = status_data.get('TempOfHotbed', 0)
+                                        bed_target = status_data.get('TempTargetHotbed', 0)
+                                        nozzle_curr = status_data.get('TempOfNozzle', 0)
+                                        nozzle_target = status_data.get('TempTargetNozzle', 0)
                                         
+                                        # Heuristic: If target > 0 and we are not close to it, we are heating
+                                        if bed_target > 0 and abs(bed_curr - bed_target) > 5:
+                                            state = "Heating Bed"
+                                        elif nozzle_target > 0 and abs(nozzle_curr - nozzle_target) > 5:
+                                            state = "Heating Nozzle"
+                                            
                                     result = {
                                         'filename': print_info.get('Filename', ''),
                                         'print_duration': print_info.get('CurrentTicks', 0),

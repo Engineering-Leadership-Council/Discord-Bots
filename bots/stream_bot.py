@@ -187,7 +187,8 @@ class StreamBot(discord.Client):
                             # Build Description with Print Details
                             # Use placeholders if data is missing or state is not printing
                             
-                            p_state = print_stats.get('state', 'Idle').capitalize()
+                            p_state_raw = print_stats.get('state', 'Idle')
+                            p_state = p_state_raw.title()
                             p_file = print_stats.get('filename', '--')
                             p_progress = print_stats.get('progress', 0) * 100
                             
@@ -195,21 +196,28 @@ class StreamBot(discord.Client):
                             p_elapsed = "--"
                             p_left = "--"
                             
-                            if print_stats.get('print_duration') is not None and print_stats.get('state') == "printing":
-                                import datetime
-                                p_elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
-                                
-                                # Estimate Time Left
-                                # Priority 1: Use Total Duration from SDCP/Moonraker if available
-                                if print_stats.get('total_duration', 0) > 0:
-                                    left = print_stats['total_duration'] - print_stats['print_duration']
-                                    if left < 0: left = 0
-                                    p_left = str(datetime.timedelta(seconds=int(left)))
-                                # Priority 2: Estimate based on progress
-                                elif print_stats.get('progress', 0) > 0:
-                                    total_time = print_stats['print_duration'] / print_stats['progress']
-                                    left = total_time - print_stats['print_duration']
-                                    p_left = str(datetime.timedelta(seconds=int(left)))
+                            # Show stats for any active state (Printing, Heating, Starting, etc)
+                            # Exclude Idle, Paused (maybe?), Error
+                            inactive_states = ['Idle', 'Standby', 'Error', 'Offline']
+                            
+                            # Check if state implies activity. 
+                            # We use lower() for comparison but p_state is Title Cased for display
+                            if p_state_raw.lower() not in [s.lower() for s in inactive_states] and p_state_raw.lower() != 'paused':
+                                if print_stats.get('print_duration') is not None:
+                                    import datetime
+                                    p_elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
+                                    
+                                    # Estimate Time Left
+                                    # Priority 1: Use Total Duration from SDCP/Moonraker if available
+                                    if print_stats.get('total_duration', 0) > 0:
+                                        left = print_stats['total_duration'] - print_stats['print_duration']
+                                        if left < 0: left = 0
+                                        p_left = str(datetime.timedelta(seconds=int(left)))
+                                    # Priority 2: Estimate based on progress
+                                    elif print_stats.get('progress', 0) > 0:
+                                        total_time = print_stats['print_duration'] / print_stats['progress']
+                                        left = total_time - print_stats['print_duration']
+                                        p_left = str(datetime.timedelta(seconds=int(left)))
 
                             # Format Description
                             description = (

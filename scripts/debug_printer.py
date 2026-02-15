@@ -77,41 +77,63 @@ def check_printer(index):
     unique_ports = []
     [unique_ports.append(p) for p in ports_to_try if p not in unique_ports]
 
-    print(f"[{index}] Checking Host: {host} on ports: {unique_ports}")
+    print(f"[{index}] Checking Host: {host}")
 
-    for port in unique_ports:
-        scheme = "https" if port == "443" else "http"
-        base_url = f"{scheme}://{host}:{port}"
-        api_url = f"{base_url}/printer/objects/query?print_stats&display_status"
-        
+    # Paths to probe on Port 80
+    paths_to_probe = [
+        "/printer/objects/query?print_stats&display_status", # Standard Moonraker
+        "/api/printer", # Mainsail/Fluidd sometimes
+        "/moonraker/printer/objects/query?print_stats&display_status", # Reverse Proxy
+        "/", # Root (Check title)
+        "/api/version"
+    ]
+
+    for path in paths_to_probe:
+        url = f"http://{host}{path}"
         try:
-            print(f"[{index}]   Trying {base_url} ...", end="", flush=True)
-            with urllib.request.urlopen(api_url, timeout=2) as response:
+            print(f"[{index}]   Probing {url} ...", end="", flush=True)
+            req = urllib.request.Request(url)
+            # Add User-Agent just in case
+            req.add_header('User-Agent', 'Mozilla/5.0')
+            
+            with urllib.request.urlopen(req, timeout=2) as response:
                 code = response.getcode()
+                content_type = response.headers.get('Content-Type', '')
+                
+                print(f" Status {code} ({content_type})")
+                
+                body = response.read().decode('utf-8', errors='ignore')
+                
                 if code == 200:
-                    print(" SUCCESS!")
-                    body = response.read().decode('utf-8')
-                    data = json.loads(body)
-                    
-                    status = data.get('result', {}).get('status', {})
-                    print_stats = status.get('print_stats', {})
-                    
-                    state = print_stats.get('state', 'Unknown')
-                    filename = print_stats.get('filename', 'None')
-                    progress = status.get('display_status', {}).get('progress', 0)
-                    
-                    print(f"[{index}]     State: {state} | Progress: {progress*100:.1f}% | File: {filename}")
-                    print(f"[{index}]     *** FOUND CORRECT URL: {base_url} ***")
-                    return # Stop after finding working port
-                else:
-                    print(f" Failed (Status {code})")
-                    
+                    # If JSON, try to parse
+                    if 'json' in content_type:
+                        try:
+                            data = json.loads(body)
+                            print(f"[{index}]     JSON Response keys: {list(data.keys())}")
+                            
+                            # Check for Moonraker-like structure
+                            if 'result' in data and 'status' in data['result']:
+                                print(f"[{index}]     *** FOUND COMPATIBLE API at {url} ***")
+                                status = data['result']['status']
+                                print(f"[{index}]     State: {status.get('print_stats', {}).get('state', 'Unknown')}")
+                                return
+                        except:
+                            pass
+                    # If HTML, get title
+                    elif '<title>' in body:
+                        start = body.find('<title>') + 7
+                        end = body.find('</title>')
+                        title = body[start:end].strip()
+                        print(f"[{index}]     Page Title: {title}")
+                        
+        except urllib.error.HTTPError as e:
+            print(f" Failed ({e.code})")
         except urllib.error.URLError as e:
             print(f" Failed ({e.reason})")
         except Exception as e:
              print(f" Error ({e})")
     
-    print(f"[{index}] ALL ATTEMPTS FAILED for {host}")
+    print(f"[{index}] Could not find Moonraker API.")
 
 def main():
     print("--- Printer API Debug Tool (No Dependencies) ---")

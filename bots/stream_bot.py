@@ -177,9 +177,11 @@ class StreamBot(discord.Client):
                             
                             # Update Footer with Status
                             footer_text = f"Status: {current_status} • ID: {index}"
+                            if print_stats.get('state'):
+                                footer_text += f" • Printer: {print_stats['state']}"
                             if print_stats.get('state') == "printing":
                                 progress = print_stats.get('progress', 0) * 100
-                                footer_text += f" • {progress:.1f}%"
+                                footer_text += f" ({progress:.1f}%)"
                             embed.set_footer(text=footer_text)
 
                             # Update Description with Print Details
@@ -187,7 +189,7 @@ class StreamBot(discord.Client):
                             if print_stats.get('filename'):
                                 description += f"**File:** {print_stats['filename']}\n"
                             
-                            if print_stats.get('print_duration') is not None:
+                            if print_stats.get('print_duration') is not None and print_stats.get('state') == "printing":
                                 import datetime
                                 elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
                                 description += f"**Elapsed:** {elapsed}\n"
@@ -250,8 +252,10 @@ class StreamBot(discord.Client):
                         'state': stats.get('state'),
                         'progress': display.get('progress', 0)
                     }
-        except Exception:
-            pass
+                else:
+                    logger.error(f"Printer API error {url}: Status {response.status}")
+        except Exception as e:
+            logger.error(f"Failed to fetch printer status {base_url}: {e}")
         return {}
 
     async def on_message(self, message):

@@ -84,7 +84,7 @@ STREAM_2_TITLE=Prusa MK4
 ```
 
 #### **Commands:**
-*   `!restart_streams` - **Admin Only** - Forces the bot to reload stream configurations and restart connections.
+*   `!restart_streams` - **Admin Only** - Clears all messages in the stream channel and restarts stream connections.
 
 
 ---

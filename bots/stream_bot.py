@@ -62,7 +62,9 @@ class StreamBot(discord.Client):
     async def get_frame(self, session, url):
         buffer = b""
         try:
-            async with session.get(url) as response:
+            # Add timeout for connection and read
+            timeout = aiohttp.ClientTimeout(total=None, connect=10, sock_read=10)
+            async with session.get(url, timeout=timeout) as response:
                 if response.status != 200:
                     logger.error(f"Failed to connect to stream {url}: {response.status}")
                     return
@@ -86,8 +88,11 @@ class StreamBot(discord.Client):
                     if len(buffer) > 5 * 1024 * 1024:
                          buffer = b""
                              
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+            logger.error(f"Stream connection/read error {url}: {e}")
+            await asyncio.sleep(5)
         except Exception as e:
-            logger.error(f"Stream error {url}: {e}")
+            logger.error(f"Unexpected stream error {url}: {e}")
             await asyncio.sleep(5)
 
     async def stream_loop(self, channel, url, title, index):
@@ -134,5 +139,22 @@ class StreamBot(discord.Client):
     async def on_message(self, message):
         # Simple command to force restart streams if needed
         if message.content == "!restart_streams" and message.author.guild_permissions.administrator:
-            await message.channel.send("Restarting streams...")
-            await self.start_streams()
+            await message.channel.send("Restarting streams & purging channel...", delete_after=5)
+            await self.purge_and_restart()
+
+    async def purge_and_restart(self):
+        # Cancel all streams first
+        for task in self.stream_tasks:
+            task.cancel()
+        self.stream_tasks = []
+
+        channel = self.get_channel(self.channel_id)
+        if channel:
+            try:
+                # Purge channel
+                await channel.purge(limit=100)
+            except Exception as e:
+                logger.error(f"Failed to purge channel: {e}")
+        
+        # Restart
+        await self.start_streams()

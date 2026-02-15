@@ -181,36 +181,40 @@ class StreamBot(discord.Client):
 
                             embed.color = color
                             
-                            # Update Footer with Status
-                            footer_text = f"Status: {current_status} • ID: {index}"
-                            if print_stats.get('state'):
-                                footer_text += f" • Printer: {print_stats['state']}"
-                            if print_stats.get('state') == "printing":
-                                progress = print_stats.get('progress', 0) * 100
-                                footer_text += f" ({progress:.1f}%)"
-                            embed.set_footer(text=footer_text)
+                            # Update Footer to just ID and basic status
+                            embed.set_footer(text=f"Camera: {current_status} • ID: {index}")
 
-                            # Update Description with Print Details
-                            description = ""
-                            if print_stats.get('filename'):
-                                description += f"**File:** {print_stats['filename']}\n"
+                            # Build Description with Print Details
+                            # Use placeholders if data is missing or state is not printing
+                            
+                            p_state = print_stats.get('state', 'Idle').capitalize()
+                            p_file = print_stats.get('filename', '--')
+                            p_progress = print_stats.get('progress', 0) * 100
+                            
+                            # Calculate Time Left / Elapsed
+                            p_elapsed = "--"
+                            p_left = "--"
                             
                             if print_stats.get('print_duration') is not None and print_stats.get('state') == "printing":
                                 import datetime
-                                elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
-                                description += f"**Elapsed:** {elapsed}\n"
+                                p_elapsed = str(datetime.timedelta(seconds=int(print_stats['print_duration'])))
                                 
                                 # Estimate Time Left
                                 if print_stats.get('progress', 0) > 0:
                                     total_time = print_stats['print_duration'] / print_stats['progress']
                                     left = total_time - print_stats['print_duration']
-                                    left_str = str(datetime.timedelta(seconds=int(left)))
-                                    description += f"**Est. Time Left:** {left_str}\n"
+                                    p_left = str(datetime.timedelta(seconds=int(left)))
 
-                            if description:
-                                embed.description = description
-                            else:
-                                embed.description = None # Clear if no print info
+                            # Format Description
+                            description = (
+                                f"**Status:** {p_state}\n"
+                                f"**File:** {p_file}\n"
+                                f"**Progress:** {p_progress:.1f}%\n"
+                                f"**Elapsed:** {p_elapsed}\n"
+                                f"**Time Left:** {p_left}"
+                            )
+
+                            embed.description = description
                             
                             try:
                                 if not message:

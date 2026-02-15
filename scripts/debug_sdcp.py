@@ -150,6 +150,8 @@ def check_udp_discovery(index, specific_host=None):
                 if text.strip().startswith('{'):
                     try:
                         j = json.loads(text)
+                        print(f"[{index}] UDP RAW JSON: {json.dumps(j, indent=2)}")
+                        
                         # Check multiple locations for MainboardID
                         # It might be in Data.MainboardID or just MainboardID
                         mb_id = j.get('Data', {}).get('MainboardID') or j.get('MainboardID')
@@ -157,7 +159,7 @@ def check_udp_discovery(index, specific_host=None):
                         if mb_id:
                             print(f"[{index}] *** FOUND MainboardID via UDP: {mb_id} ***")
                             found_id = mb_id
-                            return found_id
+                            # return found_id # Don't return yet, we want to see the JSON!
                     except: pass
             except socket.timeout:
                 pass

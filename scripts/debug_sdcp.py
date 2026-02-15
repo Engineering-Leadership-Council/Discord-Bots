@@ -118,7 +118,88 @@ def load_env_file():
             except: pass
     print("Warning: .env not found")
 
-def check_sdcp(index):
+def check_udp_discovery(index):
+    # SDCP Discovery: Send "M99999" to port 3000
+    print(f"[{index}] Sending UDP Broadcast 'M99999' to port 3000...")
+    
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.settimeout(5)
+    
+    found_id = None
+    
+    try:
+        # Send Broadcast
+        message = b"M99999"
+        sock.sendto(message, ('<broadcast>', 3000))
+        
+        print(f"[{index}] Listening for UDP response on port 3000 (5s)...")
+        start_time = time.time()
+        while time.time() - start_time < 5:
+            try:
+                data, addr = sock.recvfrom(4096)
+                text = data.decode('utf-8', errors='ignore')
+                print(f"[{index}] UDP from {addr}: {text}")
+                
+                if text.strip().startswith('{'):
+                    try:
+                        j = json.loads(text)
+                        # Check multiple locations for MainboardID
+                        # It might be in Data.MainboardID or just MainboardID
+                        mb_id = j.get('Data', {}).get('MainboardID') or j.get('MainboardID')
+                        
+                        if mb_id:
+                            print(f"[{index}] *** FOUND MainboardID: {mb_id} ***")
+                            found_id = mb_id
+                            return found_id # Return immediately if found
+                    except: pass
+            except socket.timeout:
+                pass
+            except Exception as e:
+                print(f"[{index}] UDP Recv Error: {e}")
+                break
+    except Exception as e:
+        print(f"[{index}] UDP Send Error: {e}")
+    finally:
+        sock.close()
+    return found_id
+
+if __name__ == "__main__":
+    load_env_file()
+    print("--- SDCP Debug Tool (Zero Dependency) ---")
+    
+    # Try discovery to get Mainboard ID
+    # We'll valid try to use the first one found for all, 
+    # OR ideally we match IP. But for now let's just get ANY ID.
+    global_mainboard_id = check_udp_discovery(0)
+    
+    if global_mainboard_id:
+        print(f"Using MainboardID: {global_mainboard_id} for tests.")
+    else:
+        print("No MainboardID found via UDP. Will try generic requests (might fail).")
+
+    for i in range(1, 4):
+        # Pass mainboard ID if we have it? 
+        # For now, let's update check_sdcp to take an optional ID
+        # We need to hack the loop above to pass it.
+        # But check_sdcp signature is fixed. 
+        # Let's just use the global variable or modify check_sdcp in-place.
+        pass 
+        
+    # Re-define check_sdcp call or cleaner approach:
+    # Actually, let's just modify the loop below to pass it if I modify the function signature.
+    # But I can't easily change the signature in this patch verify easily without rewriting check_sdcp header.
+    # So I will use a global or re-read it.
+    
+    # Wait, I can just modify the loop implementation in `if __name__` block.
+    # But check_sdcp needs to be updated to USE it.
+    
+    pass
+
+# Redefine check_sdcp to include mainboard_id logic
+# (To save tool calls, I'm bundling the function re-definition and the main block update here)
+
+def check_sdcp(index, mainboard_id=None):
     url_env = f"PRINTER_{index}_URL"
     base_url = os.getenv(url_env)
     
@@ -126,7 +207,6 @@ def check_sdcp(index):
         print(f"[{index}] No {url_env} found.")
         return
 
-    # Extract Host
     host = "unknown"
     try:
         if "://" in base_url:
@@ -147,135 +227,76 @@ def check_sdcp(index):
         ws_handshake(sock, host, port)
         print(f"[{index}] Handshake Success! Sending status request...")
         
-        # SDCP Get Status Command
-        # This is a guess based on common SDCP structures.
-        timestamp = int(time.time() * 1000)
-        status_cmd = {
-            "Id": f"{timestamp}",
-            "Data": {
-                "Cmd": 0, # 0 often means "Info" or "Status" in some versions, or maybe "GetStatus" string
-                "Data": {}
-            },
-            "Topic": "sdcp/request/status"
-        }
+        topic_status = "sdcp/request/status"
+        if mainboard_id:
+            topic_status = f"sdcp/request/{mainboard_id}/status" # Guessing topic format
         
-        # Try a few variations if we aren't sure
-        cmds_to_try = [
-            # 1. Standard GetStatus
-            json.dumps({
+        cmds_to_try = []
+        
+        # 1. With MainboardID if available
+        if mainboard_id:
+             cmds_to_try.append(json.dumps({
                 "Id": f"{int(time.time()*1000)}", 
+                "Topic": f"sdcp/request/{mainboard_id}", # Another guess
+                "Data": {"Cmd": "GetStatus", "MainboardID": mainboard_id} 
+            }))
+             cmds_to_try.append(json.dumps({
+                "Id": f"{int(time.time()*1000)+1}", 
+                "Topic": "sdcp/request/status",
+                "Data": {"Cmd": "GetStatus", "MainboardID": mainboard_id, "From": "Client"} 
+            }))
+
+        # 2. Generic Fallbacks
+        cmds_to_try.extend([
+            json.dumps({
+                "Id": f"{int(time.time()*1000)+10}", 
                 "Topic": "sdcp/request/status",
                 "Data": {"Cmd": "GetStatus"} 
             }),
-            # 2. GetAttributes (often used for initial state)
-            json.dumps({
-                "Id": f"{int(time.time()*1000)+1}",
-                "Topic": "sdcp/request/attributes",
-                "Data": {"Cmd": "GetAttributes"}
-            }),
-             # 3. Simple Cmd: 0
              json.dumps({
-                "Id": f"{int(time.time()*1000)+2}", 
+                "Id": f"{int(time.time()*1000)+11}", 
                 "Topic": "sdcp/request/status",
                 "Data": {"Cmd": 0} 
-            }),
-            # 4. Empty Data
-            json.dumps({
-                "Id": f"{int(time.time()*1000)+3}",
-                "Topic": "sdcp/request/status",
-                "Data": {}
             })
-        ]
+        ])
 
         print(f"[{index}] Sending {len(cmds_to_try)} command variations...")
         for cmd in cmds_to_try:
             print(f"[{index}] >> {cmd}")
             ws_send_text(sock, cmd)
-            time.sleep(1.0) # Wait a bit between commands
+            time.sleep(1.0)
         
-        # Listen for a few seconds
         print(f"[{index}] Listening for 10 seconds...")
         start_time = time.time()
         while time.time() - start_time < 10:
             try:
                 opcode, data = ws_recv_frame(sock)
-                if opcode == 0x8: # Close
+                if opcode == 0x8:
                     print(f"[{index}] Server sent Close frame")
                     break
-                if opcode == 0x1: # Text
+                if opcode == 0x1:
                     text = data.decode('utf-8')
-                    # Pretty print JSON if possible
-                    try:
-                        j = json.loads(text)
-                        print(f"[{index}] RECV JSON: {json.dumps(j, indent=2)}")
-                        
-                        # Check for Status
-                        if 'Data' in j and 'Status' in j['Data']:
-                             pass # Found it!
-                    except:
-                        print(f"[{index}] RECV Text: {text}")
+                    print(f"[{index}] RECV: {text[:200]}...") # Truncate for sanity
             except socket.timeout:
                 pass
             except Exception as e:
                 print(f"[{index}] Read Error: {e}")
                 break
                 
-        # Try sending a status request if quiet?
-        # status_cmd = {"Id": "1", "Data": {"Cmd": "GetStatus"}, "Topic": "sdcp/request/status"}
-        # ws_send_text(sock, json.dumps(status_cmd))
-        
         sock.close()
     except Exception as e:
         print(f"[{index}] Failed: {e}")
-
-def check_udp_discovery(index):
-    # SDCP Discovery: Send "M99999" to port 3000
-    print(f"[{index}] Sending UDP Broadcast 'M99999' to port 3000...")
-    
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.settimeout(5)
-    
-    try:
-        # Send Broadcast
-        message = b"M99999"
-        sock.sendto(message, ('<broadcast>', 3000))
-        
-        print(f"[{index}] Listening for UDP response on port 3000 (5s)...")
-        start_time = time.time()
-        while time.time() - start_time < 5:
-            try:
-                data, addr = sock.recvfrom(4096)
-                text = data.decode('utf-8', errors='ignore')
-                print(f"[{index}] UDP from {addr}: {text}")
-                
-                # Try to parse JSON if it looks like it
-                if text.strip().startswith('{'):
-                    try:
-                        j = json.loads(text)
-                        print(f"[{index}] UDP JSON Keys: {list(j.keys())}")
-                        if 'Data' in j and 'Status' in j['Data']:
-                            print(f"[{index}] *** FOUND STATUS VIA UDP! ***")
-                    except: pass
-            except socket.timeout:
-                pass
-            except Exception as e:
-                print(f"[{index}] UDP Recv Error: {e}")
-                break
-    except Exception as e:
-        print(f"[{index}] UDP Send Error: {e}")
-    finally:
-        sock.close()
 
 if __name__ == "__main__":
     load_env_file()
     print("--- SDCP Debug Tool (Zero Dependency) ---")
     
-    # Try UDP check first as it's passive/discovery
-    # Note: Binding to port 3000 might conflict if multiple instances run or if another app uses it.
-    # But for a quick debug script it's worth a shot.
-    # We only run it once, not per printer index, really.
-    check_udp_discovery(0)
+    mb_id = check_udp_discovery(0)
     
+    if mb_id:
+        print(f"Using MainboardID: {mb_id} for tests.")
+    else:
+        print("No MainboardID found via UDP. Will try generic requests.")
+
     for i in range(1, 4):
-        check_sdcp(i)
+        check_sdcp(i, mb_id)

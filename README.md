@@ -67,30 +67,34 @@ Streams MJPEG video from local network sources to a Discord channel. Supports mu
 
 #### **Key Features:**
 *   **Multi-Stream Support:** Configure up to 5 streams via `.env`.
+*   **Printer Status Integration:** Automatically fetches and displays real-time 3D printer status:
+    *   **Supports:** Moonraker/Klipper (Standard) & **Elegoo SDCP** (Centauri Carbon).
+    *   **Displays:** Filename, Print Progress (%), Elapsed Time, and Estimated Time Left.
+    *   **Idle State:** Shows clean placeholders (`--`) when the printer is not active.
 *   **Smart Recovery:** Automatically attempts to reconnect if a stream goes offline (e.g., printer power cycle).
-*   **Status Indicators:** Displays real-time status:
-    *   🟡 **CONNECTING** - Initial connection attempt.
-    *   🟢 **LIVE** - Stream is active and updating.
-    *   🔴 **OFFLINE** - Connection failed (will retry automatically).
 *   **Wake-on-Connect:** Mimics a browser connection to force "lazy" cameras to start streaming immediately.
 *   **Persistence:** Reuses existing stream messages on restart to prevent channel clutter.
 
 #### **Configuration (.env):**
 1.  Add `STREAM_BOT_TOKEN`.
 2.  Set `STREAM_CHANNEL_ID` to the channel where streams should appear.
-3.  Configure streams using the pattern `STREAM_X_URL` and `STREAM_X_TITLE`:
+3.  Configure streams using the pattern `STREAM_X_...` and optional `PRINTER_X_...`:
 
 ```ini
 STREAM_BOT_TOKEN=...
 STREAM_CHANNEL_ID=123456789 (Developer Mode -> Copy ID)
 
-# Printer 1
+# --- Printer 1 (Standard Klipper) ---
 STREAM_1_URL=http://192.168.1.101:8080/video
 STREAM_1_TITLE=Bambu Lab X1C
+# Optional: Explicitly set printer API URL (defaults to http://<stream_ip>:7125)
+PRINTER_1_URL=http://192.168.1.101:7125
 
-# Printer 2 (Optional)
-STREAM_2_URL=http://192.168.1.102/webcam/?action=stream
-STREAM_2_TITLE=Prusa MK4
+# --- Printer 2 (Elegoo / SDCP) ---
+STREAM_2_URL=http://192.168.1.102:8080/stream
+STREAM_2_TITLE=Elegoo Centauri
+# SDCP uses port 3030 over WebSocket
+PRINTER_2_URL=ws://192.168.1.102:3030/websocket
 ```
 
 #### **Commands:**

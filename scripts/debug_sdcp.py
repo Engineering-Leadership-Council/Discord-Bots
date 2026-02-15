@@ -238,43 +238,44 @@ def check_sdcp(index, mainboard_id=None):
             # Topic: sdcp/request/{MainboardID}
             topic = f"sdcp/request/{mainboard_id}"
             
-            # 1. Login/Connect (Cmd 1 or 256?)
-            # Some sources say no login needed for local, but maybe "Connect" needed?
+            # Create a proper UUID for IDs
+            import uuid
             
-            # Try 1: Cmd 1 (Status?)
-            cmds_to_try.append(json.dumps({
-                "Id": f"{int(time.time()*1000)}", 
-                "Topic": topic,
-                "Data": {"Cmd": 1, "MainboardID": mainboard_id, "From": "Client"} 
-            }))
-
-            # Try 2: Cmd 0 (Info?)
-            cmds_to_try.append(json.dumps({
-                 "Id": f"{int(time.time()*1000)+1}",
-                 "Topic": topic,
-                 "Data": {"Cmd": 0, "MainboardID": mainboard_id, "From": "Client"}
-            }))
-
-            # Try 3: Cmd 128 (GetStatus - observed in some logs)
-            cmds_to_try.append(json.dumps({
-                 "Id": f"{int(time.time()*1000)+2}",
-                 "Topic": topic,
-                 "Data": {"Cmd": 128, "MainboardID": mainboard_id, "From": "Client"}
-            }))
-             
-             # Try 4: String "GetStatus"
-            cmds_to_try.append(json.dumps({
-                "Id": f"{int(time.time()*1000)+3}", 
-                "Topic": topic,
-                "Data": {"Cmd": "GetStatus", "MainboardID": mainboard_id, "From": "Client"} 
-            }))
-
-            # Try 5: Cmd 258 (Control?) sent to mainboard topic
-            cmds_to_try.append(json.dumps({
-                "Id": f"{int(time.time()*1000)+4}", 
-                "Topic": topic,
-                "Data": {"Cmd": 258, "MainboardID": mainboard_id, "From": "Client"} 
-            }))
+            # Try 1: Exact Open Centauri Format (Cmd 0)
+            # { "Id": "uuid", "Data": { "Cmd": 0, "Data": {}, "RequestID": "uuid", "MainboardID": "id", "TimeStamp": 12345678, "From": 0 }, "Topic": "..." }
+            
+            uuid_str = str(uuid.uuid4())
+            ts = int(time.time()) # Seconds, not ms
+            
+            cmd_dict = {
+                "Id": uuid_str,
+                "Data": {
+                    "Cmd": 0,
+                    "Data": {},
+                    "RequestID": uuid_str,
+                    "MainboardID": mainboard_id,
+                    "TimeStamp": ts,
+                    "From": 0 # Integer 0 per docs!
+                },
+                "Topic": topic
+            }
+            cmds_to_try.append(json.dumps(cmd_dict))
+            
+            # Try 2: Cmd 1 (Attributes) same format
+            uuid_str_2 = str(uuid.uuid4())
+            cmd_dict_2 = {
+                "Id": uuid_str_2,
+                "Data": {
+                    "Cmd": 1,
+                    "Data": {},
+                    "RequestID": uuid_str_2,
+                    "MainboardID": mainboard_id,
+                    "TimeStamp": ts,
+                    "From": 0
+                },
+                "Topic": topic
+            }
+            cmds_to_try.append(json.dumps(cmd_dict_2))
             
         else:
              cmds_to_try.append(json.dumps({

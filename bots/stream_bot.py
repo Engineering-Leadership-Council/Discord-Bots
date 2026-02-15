@@ -220,13 +220,35 @@ class StreamBot(discord.Client):
                                         p_left = str(datetime.timedelta(seconds=int(left)))
 
                             # Format Description
-                            description = (
-                                f"**Status:** {p_state}\n"
-                                f"**File:** {p_file}\n"
-                                f"**Progress:** {p_progress:.1f}%\n"
-                                f"**Elapsed:** {p_elapsed}\n"
-                                f"**Time Left:** {p_left}"
-                            )
+                            description = f"**Status:** {p_state}\n"
+                            
+                            # Add Temperatures if available
+                            if 'temps' in print_stats:
+                                temps = print_stats['temps']
+                                # Bed: Curr / Target
+                                t_str = []
+                                if temps.get('bed'):
+                                    t_str.append(f"Bed: {temps['bed'][0]}°C / {temps['bed'][1]}°C")
+                                if temps.get('nozzle'):
+                                    t_str.append(f"Noz: {temps['nozzle'][0]}°C / {temps['nozzle'][1]}°C")
+                                if temps.get('chamber'):
+                                    t_str.append(f"Chamber: {temps['chamber']}°C")
+                                
+                                if t_str:
+                                    description += f"**Temps:** {' | '.join(t_str)}\n"
+
+                            description += f"**File:** {p_file}\n"
+                            
+                            # Only show progress/times if NOT Idle
+                            if p_state_raw != "Idle":
+                                description += (
+                                    f"**Progress:** {p_progress:.1f}%\n"
+                                    f"**Elapsed:** {p_elapsed}\n"
+                                    f"**Time Left:** {p_left}"
+                                )
+                            else:
+                                # Optional: You could show just an empty line or nothing
+                                pass
 
                             embed.description = description
                             

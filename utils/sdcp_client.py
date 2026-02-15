@@ -141,7 +141,12 @@ class SDCPClient:
                                         'total_duration': print_info.get('TotalTicks', 0),
                                         'state': state,
                                         'progress': 0,
-                                        'meta': status_data
+                                        'meta': status_data,
+                                        'temps': {
+                                            'bed': (status_data.get('TempOfHotbed', 0), status_data.get('TempTargetHotbed', 0)),
+                                            'nozzle': (status_data.get('TempOfNozzle', 0), status_data.get('TempTargetNozzle', 0)),
+                                            'chamber': status_data.get('TempOfCase', 0) # 'TempOfCase' is common for Chamber
+                                        }
                                     }
                                     
                                     # Clear stats if Idle to prevent stale data

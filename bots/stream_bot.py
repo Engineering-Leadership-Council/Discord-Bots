@@ -273,38 +273,13 @@ class StreamBot(discord.Client):
                                         # Image hasn't changed, just update text
                                         await message.edit(embed=embed)
                                     else:
-                                        # Smooth Streaming Logic
-                                        cache_channel_id = os.getenv('STREAM_CACHE_CHANNEL_ID')
-                                        cache_channel = None
+                                        # Image changed, rotate filename to help client cache busting/transition
+                                        filename_toggle = not filename_toggle
+                                        filename = "stream_1.jpg" if filename_toggle else "stream_0.jpg"
                                         
-                                        if cache_channel_id:
-                                            try:
-                                                cache_channel = self.get_channel(int(cache_channel_id))
-                                            except:
-                                                pass
-                                        
-                                        if cache_channel:
-                                            # 1. Upload to Cache Channel
-                                            # Use fixed filename, Discord generates unique URLs anyway
-                                            file = discord.File(BytesIO(jpg_data), filename="stream.jpg")
-                                            cache_msg = await cache_channel.send(file=file)
-                                            
-                                            # 2. Get URL
-                                            image_url = cache_msg.attachments[0].url
-                                            
-                                            # 3. Update Embed URL (No flash!)
-                                            embed.set_image(url=image_url)
-                                            await message.edit(embed=embed) # No attachments arg needed here
-                                            
-                                        else:
-                                            # Fallback: Direct Attachment (Flashy but works)
-                                            # Image changed, rotate filename to help client cache busting/transition
-                                            filename_toggle = not filename_toggle
-                                            filename = "stream_1.jpg" if filename_toggle else "stream_0.jpg"
-                                            
-                                            file = discord.File(BytesIO(jpg_data), filename=filename)
-                                            embed.set_image(url=f"attachment://{filename}")
-                                            await message.edit(embed=embed, attachments=[file])
+                                        file = discord.File(BytesIO(jpg_data), filename=filename)
+                                        embed.set_image(url=f"attachment://{filename}")
+                                        await message.edit(embed=embed, attachments=[file])
                                         
                                         last_image_hash = cur_hash
                                 else:

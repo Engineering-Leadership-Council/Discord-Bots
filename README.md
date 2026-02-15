@@ -60,6 +60,23 @@ Ensures every new member receives a warm welcome and direction.
 
 ---
 
+### 4. Stream Bot (Experimental)
+**Status:** `Standalone` | **File:** `stream_bot.py`
+
+A standalone script to stream MJPEG video from a local network source to a Discord channel.
+
+#### **Setup:**
+1.  Add `STREAM_BOT_TOKEN=your_token` to your `.env` file.
+2.  (Optional) Add `STREAM_CHANNEL_ID=your_channel_id` to `.env`.
+3.  Run the bot: `python stream_bot.py`.
+
+#### **Commands:**
+*   `!start_stream` - Starts streaming video to the current channel.
+*   `!stop_stream` - Stops the stream.
+
+
+---
+
 ## Installation & Setup
 
 These bots are designed to run as a **Systemd Service** on a Raspberry Pi or Ubuntu server, ensuring they start on boot and restart automatically if they crash.

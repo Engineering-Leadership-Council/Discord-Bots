@@ -145,7 +145,46 @@ def check_sdcp(index):
         sock.connect((host, port))
         
         ws_handshake(sock, host, port)
-        print(f"[{index}] Handshake Success! Listening for messages...")
+        print(f"[{index}] Handshake Success! Sending status request...")
+        
+        # SDCP Get Status Command
+        # This is a guess based on common SDCP structures.
+        timestamp = int(time.time() * 1000)
+        status_cmd = {
+            "Id": f"{timestamp}",
+            "Data": {
+                "Cmd": 0, # 0 often means "Info" or "Status" in some versions, or maybe "GetStatus" string
+                "Data": {}
+            },
+            "Topic": "sdcp/request/status"
+        }
+        
+        # Try a few variations if we aren't sure
+        cmds_to_try = [
+            # Variation 1: Standard SDCP v3?
+            json.dumps({
+                "Id": "1", 
+                "Topic": "sdcp/request/status",
+                "Data": {"Cmd": "GetStatus"} 
+            }),
+            # Variation 2: Integer Cmd
+             json.dumps({
+                "Id": "2", 
+                "Topic": "sdcp/request/status",
+                "Data": {"Cmd": 0} 
+            }),
+             # Variation 3: Just check attributes
+            json.dumps({
+                "Id": "3",
+                "Topic": "sdcp/request/attributes",
+                "Data": {"Cmd": "GetAttributes"}
+            })
+        ]
+
+        for cmd in cmds_to_try:
+            print(f"[{index}] Sending: {cmd}")
+            ws_send_text(sock, cmd)
+            time.sleep(0.5)
         
         # Listen for a few seconds
         start_time = time.time()

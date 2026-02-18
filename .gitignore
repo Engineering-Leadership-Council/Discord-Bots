@@ -5,4 +5,9 @@ __pycache__/
 
 
 # Tests
+# Tests
 tests/
+
+# Data
+data/*
+!data/.gitkeep

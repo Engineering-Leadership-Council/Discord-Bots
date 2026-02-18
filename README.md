@@ -130,7 +130,7 @@ Manages 3D printer filament inventory, tracking usage and remaining weights.
 #### **Key Features:**
 *   **Dual Dashboards:** Separate interfaces for public usage (logging) and admin management (adding/editing).
 *   **Consumption Stats:** Live tracking of Daily, Weekly, and Monthly filament usage.
-*   **Log Export:** Admins can export log history to CSV directly from Discord.
+*   **Log Export:** Admins can export log history to CSV directly from Discord (Admin Dashboard).
 *   **Data Compatibility:** Uses the same JSON database structure as the ELC Filament Tracker desktop app.
 
 #### **Command Reference:**

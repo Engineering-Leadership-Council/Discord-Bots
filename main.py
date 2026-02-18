@@ -7,6 +7,7 @@ from bots.role_bot import RoleBot
 from bots.event_bot import EventBot
 from bots.stream_bot import StreamBot
 from bots.schedule_bot import ScheduleBot
+from bots.filament_bot import FilamentBot
 import bot_config
 
 import logging
@@ -98,6 +99,17 @@ async def run_bots():
              print("Warning: SCHEDULE_BOT_TOKEN not found in .env (but bot is ENABLED)")
     else:
         print("Schedule Bot is DISABLED in bot_config.py")
+
+    # Add Filament Bot
+    filament_token = os.getenv('FILAMENT_BOT_TOKEN')
+    if bot_config.ENABLE_FILAMENT_BOT:
+        if filament_token:
+            filament_bot = FilamentBot(intents=intents)
+            bots.append(filament_bot.start(filament_token.strip()))
+        else:
+            print("Warning: FILAMENT_BOT_TOKEN not found in .env (but bot is ENABLED)")
+    else:
+        print("Filament Bot is DISABLED in bot_config.py")
 
 
 

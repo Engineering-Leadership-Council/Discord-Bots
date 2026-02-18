@@ -122,6 +122,23 @@ Manages and displays the weekly schedule for the Makerspace or community events.
 
 ---
 
+### 6. Filament Tracker (Filament Bot)
+**Status:** `Active` | **Prefix:** `!`
+
+Manages 3D printer filament inventory, tracking usage and remaining weights.
+
+#### **Key Features:**
+*   **Inventory Management:** Track brand, type, color, and weight of all filament spools.
+*   **Usage Logging:** Log usage via a simple Select Menu and Modal interface.
+*   **Data Compatibility:** Uses the same JSON database structure as the ELC Filament Tracker desktop app.
+
+#### **Command Reference:**
+| Command | Permission | Description |
+| :--- | :--- | :--- |
+| `!filament dashboard` | Public | Spawns the Filament Dashboard with buttons to Log Usage, Add Filament, and View Inventory. |
+
+---
+
 
 ## Installation & Setup
 
@@ -184,6 +201,10 @@ AUTO_JOIN_ROLE_ID=123456789
 
 # Schedule Bot
 SCHEDULE_BOT_TOKEN=your_token_here
+
+# Filament Bot
+FILAMENT_BOT_TOKEN=your_token_here
+FILAMENT_DATA_PATH=./data
 ```
 
 ### Feature Toggles (`bot_config.py`)

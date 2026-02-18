@@ -12,17 +12,21 @@ WELCOME_BOT_NICKNAME = "Jeff the Doorman"
 
 # Event Bot
 ENABLE_EVENT_BOT = True
-EVENT_BOT_NICKNAME = "The Event Loop"
+EVENT_BOT_NICKNAME = "Event Loop"
 EVENT_BOT_FOOTER = "Notifying you of upcoming events!"
 
 # Stream Bot
 ENABLE_STREAM_BOT = True
-STREAM_BOT_NICKNAME = "The G-Code Guardian"
+STREAM_BOT_NICKNAME = "G-Code Guardian"
 
 # Schedule Bot
 ENABLE_SCHEDULE_BOT = True
-SCHEDULE_BOT_NICKNAME = "The Timekeeper"
+SCHEDULE_BOT_NICKNAME = "Timekeeper"
 SCHEDULE_BOT_FOOTER = "Makerspace Weekly Schedule"
+
+# Filament Bot
+ENABLE_FILAMENT_BOT = True
+FILAMENT_BOT_NICKNAME = "Filament Tracker"
 
 # Welcome Puns
 WELCOME_PUNS = [

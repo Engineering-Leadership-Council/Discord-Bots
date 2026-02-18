@@ -101,7 +101,27 @@ PRINTER_2_URL=ws://192.168.1.102:3030/websocket
 *   `!restart_streams` - **Admin Only** - **Purges the last 100 messages** in the stream channel and forces a clean restart of all stream tasks. Use this if streams get stuck or de-synced.
 
 
+
 ---
+
+### 5. The Timekeeper (Schedule Bot)
+**Status:** `Active` | **Prefix:** `!`
+
+Manages and displays the weekly schedule for the Makerspace or community events.
+
+#### **Key Features:**
+*   **Weekly Schedule Display:** A pinned, auto-updating embed showing open hours for each day of the week.
+*   **Interactive Editing:** Admins can update the schedule using a simple modal form in Discord, no code changes required.
+*   **Smart Formatting:** Automatically formats days and times for readability.
+
+#### **Command Reference:**
+| Command | Permission | Description |
+| :--- | :--- | :--- |
+| `!set_schedule_channel` | **Admin** | Sets the current channel as the display location for the weekly schedule. |
+| `!setup_schedule` | **Admin** | Spawns the "Edit Weekly Schedule" button for admins to update times. |
+
+---
+
 
 ## Installation & Setup
 
@@ -118,12 +138,13 @@ git clone https://github.com/Engineering-Leadership-Council/Discord-Bots.git
 cd Discord-Bots
 ```
 
+
 ### 2. Run the Setup Script
-We provide interactive scripts that handle dependency installation, `.env` creation, and service setup.
+We provide interactive scripts that handle dependency installation, `.env` creation, and service setup. We also provide standalone scripts to run each bot individually for development or testing.
 
 **Make scripts executable:**
 ```bash
-chmod +x scripts/setup_main.sh scripts/setup_fork.sh
+chmod +x scripts/setup_main.sh scripts/setup_fork.sh scripts/run_*.py
 ```
 
 **Choose your setup mode:**
@@ -160,6 +181,9 @@ MAKER_GENERAL_CHANNEL_ID=123456789
 # Role IDs
 MEMBER_ROLE_ID=123456789
 AUTO_JOIN_ROLE_ID=123456789
+
+# Schedule Bot
+SCHEDULE_BOT_TOKEN=your_token_here
 ```
 
 ### Feature Toggles (`bot_config.py`)
@@ -174,6 +198,7 @@ ENABLE_EVENT_BOT = True
 ROLE_BOT_NICKNAME = "Sudo Master"
 EVENT_BOT_NICKNAME = "The Event Loop"
 STREAM_BOT_NICKNAME = "The G-Code Guardian"
+SCHEDULE_BOT_NICKNAME = "The Timekeeper"
 
 # Welcome Messages
 WELCOME_PUNS = [...] # Add your own puns here!

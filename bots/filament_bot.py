@@ -174,7 +174,7 @@ class FilamentBot(discord.Client):
         self.add_view(AdminDashboardView(self))
         self.auto_refresh.start()
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=1)
     async def auto_refresh(self):
         await self.update_dashboards()
     

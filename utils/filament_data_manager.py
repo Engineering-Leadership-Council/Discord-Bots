@@ -93,3 +93,70 @@ class FilamentDataManager:
         self.logs = self.load_json(self.logs_file)
         self.logs.append(log_entry)
         self.save_json(self.logs_file, self.logs)
+
+    def get_consumption_stats(self):
+        """Calculates total usage for current Day, Week, and Month."""
+        self.logs = self.load_json(self.logs_file) # Ensure fresh
+        now = datetime.now()
+        current_day = now.strftime("%Y-%m-%d")
+        current_week = now.strftime("%Y-W%U")
+        current_month = now.strftime("%Y-%m")
+
+        stats = {
+            "daily": 0.0,
+            "weekly": 0.0,
+            "monthly": 0.0
+        }
+
+        for log in self.logs:
+            try:
+                amt = float(log.get('amount_used', 0))
+            except (ValueError, TypeError):
+                continue
+
+            ts_str = log.get('timestamp', '')
+            try:
+                dt = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+                
+                day_key = dt.strftime("%Y-%m-%d")
+                week_key = dt.strftime("%Y-W%U")
+                month_key = dt.strftime("%Y-%m")
+
+                if day_key == current_day:
+                    stats["daily"] += amt
+                
+                if week_key == current_week:
+                    stats["weekly"] += amt
+                
+                if month_key == current_month:
+                    stats["monthly"] += amt
+
+            except ValueError:
+                pass
+        
+        # Round values for display
+        for k in stats:
+            stats[k] = round(stats[k], 2)
+        
+        return stats
+
+    def export_logs_to_csv(self):
+        """Converts logs to CSV string."""
+        self.logs = self.load_json(self.logs_file)
+        if not self.logs:
+            return "No logs available."
+        
+        # CSV Header
+        csv_content = "Timestamp,User,Filament,Amount Used (g)\n"
+        
+        for log in self.logs:
+            ts = log.get('timestamp', '')
+            user = log.get('user', 'Unknown')
+            filament = log.get('filament_desc', 'Unknown')
+            amount = log.get('amount_used', 0)
+            
+            # Simple manual CSV formatting to avoid imports if possible, 
+            # but wrapping in quotes handles commas in names
+            csv_content += f'"{ts}","{user}","{filament}",{amount}\n'
+            
+        return csv_content

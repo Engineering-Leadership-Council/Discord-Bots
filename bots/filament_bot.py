@@ -1,10 +1,27 @@
 import discord
 from discord import ui
 import os
+import json
 import asyncio
 from typing import List, Dict, Optional
 import bot_config
 from utils.filament_data_manager import FilamentDataManager
+
+# --- Configuration Management ---
+CONFIG_FILE = "filament_config.json"
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
+def save_config(config):
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=4)
 
 # --- Modals ---
 class LogUsageModal(ui.Modal, title="Log Filament Usage"):
@@ -26,6 +43,9 @@ class LogUsageModal(ui.Modal, title="Log Filament Usage"):
                 f"✅ Logged **{amount_val}g** usage for **{self.filament_name}**.",
                 ephemeral=True
             )
+            # Trigger dashboard updates
+            await self.bot.update_dashboards()
+            
         except ValueError:
             await interaction.response.send_message("❌ Invalid amount. Please enter a number.", ephemeral=True)
         except Exception as e:
@@ -55,6 +75,8 @@ class AddFilamentModal(ui.Modal, title="Add New Filament"):
                 f"✅ Added **{self.brand.value} {self.type_name.value} ({self.color.value})** with ID **{new_id}**.",
                 ephemeral=True
             )
+            await self.bot.update_dashboards()
+            
         except ValueError:
              await interaction.response.send_message("❌ Invalid weight. Please enter a number.", ephemeral=True)
         except Exception as e:
@@ -67,8 +89,6 @@ class FilamentSelect(ui.Select):
         self.bot: 'FilamentBot' = bot
         options = []
         inventory = self.bot.data_manager.get_inventory()
-        
-        # Sort by ID or usage? Let's sort by color/type for readability
         sorted_inv = sorted(inventory, key=lambda x: (x.get('type', ''), x.get('color', '')))
         
         for item in sorted_inv:
@@ -87,22 +107,20 @@ class FilamentSelect(ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         filament_id = int(self.values[0])
-        # Find name for modal title
         inventory = self.bot.data_manager.get_inventory()
         item = next((x for x in inventory if x['id'] == filament_id), None)
         name = f"{item['color']} {item['type']}" if item else "Unknown"
         
         await interaction.response.send_modal(LogUsageModal(self.bot, filament_id, name))
 
-# --- Views ---
-class FilamentDashboardView(ui.View):
+# --- Public Dashboard View ---
+class PublicDashboardView(ui.View):
     def __init__(self, bot):
         super().__init__(timeout=None)
         self.bot = bot
 
-    @ui.button(label="Log Usage", style=discord.ButtonStyle.primary, custom_id="filament_log_usage")
+    @ui.button(label="Log Usage", style=discord.ButtonStyle.success, custom_id="filament_public_log")
     async def log_usage_btn(self, interaction: discord.Interaction, button: ui.Button):
-        # Create a view with just the select menu
         view = ui.View()
         select = FilamentSelect(self.bot)
         if not select.options:
@@ -111,35 +129,27 @@ class FilamentDashboardView(ui.View):
         view.add_item(select)
         await interaction.response.send_message("Select the filament you used:", view=view, ephemeral=True)
 
-    @ui.button(label="Add Filament", style=discord.ButtonStyle.success, custom_id="filament_add_item")
+# --- Admin Dashboard View ---
+class AdminDashboardView(ui.View):
+    def __init__(self, bot):
+        super().__init__(timeout=None)
+        self.bot = bot
+
+    @ui.button(label="Add Filament", style=discord.ButtonStyle.primary, custom_id="filament_admin_add")
     async def add_filament_btn(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.send_modal(AddFilamentModal(self.bot))
 
-    @ui.button(label="View Inventory", style=discord.ButtonStyle.secondary, custom_id="filament_view_inv")
-    async def view_inv_btn(self, interaction: discord.Interaction, button: ui.Button):
-        inventory = self.bot.data_manager.get_inventory()
-        if not inventory:
-            await interaction.response.send_message("Inventory is empty.", ephemeral=True)
-            return
-
-        embed = discord.Embed(title="Current Filament Inventory", color=0xE67E22)
+    @ui.button(label="Export Logs", style=discord.ButtonStyle.secondary, custom_id="filament_admin_export")
+    async def export_logs_btn(self, interaction: discord.Interaction, button: ui.Button):
+        csv_data = self.bot.data_manager.export_logs_to_csv()
         
-        # Group by Type for cleaner display
-        grouped = {}
-        for item in inventory:
-            ftype = item.get('type', 'Other')
-            if ftype not in grouped: grouped[ftype] = []
-            grouped[ftype].append(item)
-            
-        for ftype, items in grouped.items():
-            content = ""
-            for item in items:
-                content += f"• **{item['brand']} {item['color']}**: {item['weight_g']}g\n"
-            embed.add_field(name=ftype, value=content, inline=False)
-            
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        # Create a temporary file to send
+        import io
+        file = discord.File(io.StringIO(csv_data), filename="filament_logs_export.csv")
+        
+        await interaction.response.send_message("📊 Here is the latest usage log:", file=file, ephemeral=True)
 
-
+# --- Main Bot Class ---
 class FilamentBot(discord.Client):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -149,30 +159,126 @@ class FilamentBot(discord.Client):
             data_path = "./data" # Fallback
             
         self.data_manager = FilamentDataManager(data_path)
+        self.config = load_config()
 
     async def setup_hook(self):
-        # We can add persistent views here if we want the dashboard to survive restarts without reposting
-        # For now, simplest is to just re-create it on command
-        pass
+        # Register persistent views so buttons work after restart
+        self.add_view(PublicDashboardView(self))
+        self.add_view(AdminDashboardView(self))
 
     async def on_ready(self):
         print(f'Filament Tracker logged in as {self.user} (ID: {self.user.id})')
         for guild in self.guilds:
             try:
                 await guild.me.edit(nick=bot_config.FILAMENT_BOT_NICKNAME)
-            except Exception as e:
+            except:
                 pass
 
+    def get_public_embed(self):
+        stats = self.data_manager.get_consumption_stats()
+        inventory = self.data_manager.get_inventory()
+        
+        embed = discord.Embed(
+            title="🧵 Filament Inventory & Status",
+            description="Live tracking of ELC 3D Printer Filament.",
+            color=0x3498DB
+        )
+        
+        # Stats Field
+        stats_text = (
+            f"**Daily Used:** {stats['daily']}g\n"
+            f"**Weekly Used:** {stats['weekly']}g\n"
+            f"**Monthly Used:** {stats['monthly']}g"
+        )
+        embed.add_field(name="📊 Consumption Stats", value=stats_text, inline=False)
+        
+        if not inventory:
+            embed.add_field(name="Inventory", value="No filament recorded.", inline=False)
+        else:
+            # Group by Type
+            grouped = {}
+            for item in inventory:
+                ftype = item.get('type', 'Other')
+                if ftype not in grouped: grouped[ftype] = []
+                grouped[ftype].append(item)
+            
+            for ftype, items in grouped.items():
+                content = ""
+                for item in items:
+                    content += f"• **{item['brand']} {item['color']}**: {item['weight_g']}g\n"
+                embed.add_field(name=f"📦 {ftype}", value=content, inline=False)
+        
+        embed.set_footer(text="Use the button below to log usage.")
+        embed.timestamp = discord.utils.utcnow()
+        return embed
+
+    def get_admin_embed(self):
+        embed = discord.Embed(
+            title="🔧 Filament Admin Controls",
+            description="Administrative tools for managing filament inventory.",
+            color=0xE74C3C
+        )
+        embed.add_field(name="Instructions", value="• **Add Filament**: Register a new spool.\n• **Export Logs**: Download usage history as CSV.")
+        return embed
+
+    async def update_dashboards(self):
+        # Update Public Dashboard
+        pub_chan_id = self.config.get('public_channel_id')
+        pub_msg_id = self.config.get('public_message_id')
+        
+        if pub_chan_id and pub_msg_id:
+            try:
+                channel = self.get_channel(pub_chan_id) or await self.fetch_channel(pub_chan_id)
+                message = await channel.fetch_message(pub_msg_id)
+                await message.edit(embed=self.get_public_embed(), view=PublicDashboardView(self))
+            except Exception as e:
+                print(f"Failed to update Public Dashboard: {e}")
+
+        # Admin dashboard doesn't need constant updating as it's static menu, but good to know
 
     async def on_message(self, message):
         if message.author == self.user:
             return
 
-        if message.content.startswith('!filament dashboard'):
-            view = FilamentDashboardView(self)
-            embed = discord.Embed(
-                title="🧵 Filament Tracking Dashboard",
-                description="Use the buttons below to manage filament inventory.",
-                color=0xE67E22
-            )
-            await message.channel.send(embed=embed, view=view)
+        # Setup Command
+        if message.content.startswith('!filament setup'):
+            if not message.author.guild_permissions.administrator:
+                await message.channel.send("❌ Admin permissions required.")
+                return
+
+            # Read Channels from .env
+            pub_env_id = os.getenv('FILAMENT_PUBLIC_CHANNEL_ID')
+            admin_env_id = os.getenv('FILAMENT_ADMIN_CHANNEL_ID')
+
+            if not pub_env_id or not admin_env_id:
+                await message.channel.send("❌ Missing `FILAMENT_PUBLIC_CHANNEL_ID` or `FILAMENT_ADMIN_CHANNEL_ID` in `.env`.")
+                return
+
+            try:
+                pub_channel = await self.fetch_channel(int(pub_env_id))
+                admin_channel = await self.fetch_channel(int(admin_env_id))
+            except Exception as e:
+                await message.channel.send(f"❌ Could not find channels: {e}")
+                return
+
+            # Post Public Dashboard
+            try:
+                pub_msg = await pub_channel.send(embed=self.get_public_embed(), view=PublicDashboardView(self))
+                self.config['public_channel_id'] = pub_channel.id
+                self.config['public_message_id'] = pub_msg.id
+                await message.channel.send(f"✅ Public Dashboard deployed to {pub_channel.mention}")
+            except Exception as e:
+                await message.channel.send(f"❌ Failed to post Public Dashboard: {e}")
+
+            # Post Admin Dashboard
+            try:
+                # Check if we already have one to avoid spamming admin channel? 
+                # For now just post a new one.
+                admin_msg = await admin_channel.send(embed=self.get_admin_embed(), view=AdminDashboardView(self))
+                self.config['admin_channel_id'] = admin_channel.id
+                self.config['admin_message_id'] = admin_msg.id
+                await message.channel.send(f"✅ Admin Dashboard deployed to {admin_channel.mention}")
+            except Exception as e:
+                await message.channel.send(f"❌ Failed to post Admin Dashboard: {e}")
+
+            save_config(self.config)

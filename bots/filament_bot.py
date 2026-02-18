@@ -1,5 +1,6 @@
 import discord
 from discord import ui
+from discord.ext import tasks
 import os
 import json
 import asyncio
@@ -171,6 +172,15 @@ class FilamentBot(discord.Client):
         # Register persistent views so buttons work after restart
         self.add_view(PublicDashboardView(self))
         self.add_view(AdminDashboardView(self))
+        self.auto_refresh.start()
+
+    @tasks.loop(minutes=5)
+    async def auto_refresh(self):
+        await self.update_dashboards()
+    
+    @auto_refresh.before_loop
+    async def before_auto_refresh(self):
+        await self.wait_until_ready()
 
     async def on_ready(self):
         print(f'Filament Tracker logged in as {self.user} (ID: {self.user.id})')

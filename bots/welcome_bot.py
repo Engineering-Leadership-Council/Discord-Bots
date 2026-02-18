@@ -135,9 +135,23 @@ class WelcomeBot(discord.Client):
              # Get current config status
              welcome_chan = os.getenv('WELCOME_CHANNEL_ID', 'Not Set')
              
+             # Check Auto-Role Status
+             member_role_id = os.getenv('MEMBER_ROLE_ID')
+             role_status = "❌ Not Configured (Set `MEMBER_ROLE_ID` in .env)"
+             
+             if member_role_id:
+                 try:
+                     role = message.guild.get_role(int(member_role_id))
+                     if role:
+                         role_status = f"✅ Active: {role.mention}"
+                     else:
+                         role_status = f"⚠️ Error: Role ID `{member_role_id}` not found in this server."
+                 except ValueError:
+                     role_status = f"⚠️ Error: Invalid Role ID format in .env"
+
              embed = discord.Embed(
                  title="Jeff the Doorman (Welcome Bot)",
-                 description=f"Welcomes new members with puns.\n\n**Status:**\n• **Welcome Channel ID:** `{welcome_chan}`\n• **Auto-Role:** Active (if configured)",
+                 description=f"Welcomes new members with puns.\n\n**Status:**\n• **Welcome Channel ID:** `{welcome_chan}`\n• **Auto-Role:** {role_status}",
                  color=0xE91E63
              )
              await message.channel.send(embed=embed)

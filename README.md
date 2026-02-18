@@ -198,7 +198,7 @@ The bot relies on a `.env` file for secrets and channel IDs.
 
 ```ini
 # Tokens
-DISCORD_TOKEN=your_token_here
+# (Specific tokens for each bot are listed below)
 
 # Channel IDs (Enable Developer Mode in Discord to copy IDs)
 EVENT_CHANNEL_ID=123456789
@@ -217,7 +217,6 @@ SCHEDULE_BOT_TOKEN=your_token_here
 # Filament Bot
 FILAMENT_BOT_TOKEN=your_token_here
 FILAMENT_DATA_PATH=./data
-FILAMENT_PUBLIC_CHANNEL_ID=123456789
 FILAMENT_PUBLIC_CHANNEL_ID=123456789
 FILAMENT_ADMIN_CHANNEL_ID=987654321
 

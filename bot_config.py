@@ -19,6 +19,11 @@ EVENT_BOT_FOOTER = "Notifying you of upcoming events!"
 ENABLE_STREAM_BOT = True
 STREAM_BOT_NICKNAME = "The G-Code Guardian"
 
+# Schedule Bot
+ENABLE_SCHEDULE_BOT = True
+SCHEDULE_BOT_NICKNAME = "The Timekeeper"
+SCHEDULE_BOT_FOOTER = "Makerspace Weekly Schedule"
+
 # Welcome Puns
 WELCOME_PUNS = [
     # --- Electrical Engineering ---

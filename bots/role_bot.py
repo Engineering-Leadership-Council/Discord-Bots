@@ -255,38 +255,44 @@ class RoleBot(discord.Client):
             await self.assign_auto_role(after)
 
     async def assign_auto_role(self, member):
-        role_id = bot_config.AUTO_JOIN_ROLE_ID
-        
-        # Fallback to .env MEMBER_ROLE_ID (used by WelcomeBot) if config is 0
-        if not role_id:
-             env_role_id = os.getenv('MEMBER_ROLE_ID')
-             if env_role_id:
-                 try:
-                     role_id = int(env_role_id)
-                     print(f"DEBUG: Using MEMBER_ROLE_ID from .env: {role_id}")
-                 except ValueError:
-                     print(f"ERROR: MEMBER_ROLE_ID in .env is not a valid integer: {env_role_id}")
-
-        print(f"DEBUG: assign_auto_role called for {member.name}. Final Role ID: {role_id}")
-        
-        if not role_id:
-            print("DEBUG: AUTO_JOIN_ROLE_ID is not set (None or 0). Skpping.")
-            return
-
-        role = member.guild.get_role(role_id)
-        if role:
-            try:
-                await member.add_roles(role)
-                print(f"Auto-assigned role {role.name} to {member.name}")
-            except discord.Forbidden:
-                print(f"ERROR: Missing Permissions to assign role {role.name}. Check Bot Role Position!")
-            except Exception as e:
-                print(f"ERROR: Failed to auto-assign role to {member.name}: {e}")
-        else:
-            print(f"ERROR: Auto-join role ID {role_id} not found in guild {member.guild.name}.")
-            # List available roles for debug
-            roles = [f"{r.name}:{r.id}" for r in member.guild.roles]
-            print(f"DEBUG: Available Roles: {', '.join(roles)}")
+        print(f"DEBUG: assign_auto_role ENTERED for {member.name}")
+        try:
+            role_id = bot_config.AUTO_JOIN_ROLE_ID
+            
+            # Fallback to .env MEMBER_ROLE_ID if config is 0
+            if not role_id:
+                 env_role_id = os.getenv('MEMBER_ROLE_ID')
+                 if env_role_id:
+                     try:
+                         role_id = int(env_role_id)
+                         print(f"DEBUG: Using MEMBER_ROLE_ID from .env: {role_id}")
+                     except ValueError:
+                         print(f"ERROR: MEMBER_ROLE_ID in .env is not a valid integer: {env_role_id}")
+    
+            print(f"DEBUG: assign_auto_role processing for {member.name}. Final Role ID: {role_id}")
+            
+            if not role_id:
+                print("DEBUG: AUTO_JOIN_ROLE_ID is not set (None or 0). Skpping.")
+                return
+    
+            role = member.guild.get_role(role_id)
+            if role:
+                try:
+                    await member.add_roles(role)
+                    print(f"Auto-assigned role {role.name} to {member.name}")
+                except discord.Forbidden:
+                    print(f"ERROR: Missing Permissions to assign role {role.name}. Check Bot Role Position!")
+                except Exception as e:
+                    print(f"ERROR: Failed to auto-assign role to {member.name}: {e}")
+            else:
+                print(f"ERROR: Auto-join role ID {role_id} not found in guild {member.guild.name}.")
+                # List available roles for debug
+                roles = [f"{r.name}:{r.id}" for r in member.guild.roles]
+                print(f"DEBUG: Available Roles: {', '.join(roles)}")
+        except Exception as e:
+            print(f"CRITICAL ERROR in assign_auto_role: {e}")
+            import traceback
+            traceback.print_exc()
 
     async def chat_command_fix_roles(self, message):
          # Command: !fix_roles <remove_role_id> <pre_may_role_id> <post_may_role_id>

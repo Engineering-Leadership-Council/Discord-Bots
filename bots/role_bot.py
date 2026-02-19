@@ -143,15 +143,30 @@ class RoleBot(discord.Client):
             await message.reply("Administrator permissions required.")
             return
 
-        # 2. Parse Arguments
-        # We expect at least 2 role mentions (Alumni, Member). 3rd is optional (Old Removal).
-        if len(message.role_mentions) < 2:
+        # 2. Parse Arguments using Regex (message.role_mentions is unreliable for order)
+        import re
+        # Find all role mentions in order: <@&123456789>
+        role_matches = re.findall(r'<@&(\d+)>', message.content)
+
+        if len(role_matches) < 2:
             await message.reply("Usage: `!migrate_alumni @AlumniRole @OngoingMemberRole [Optional:@OldRoleToRemove]`")
             return
 
-        alumni_role = message.role_mentions[0]
-        member_role = message.role_mentions[1]
-        remove_role = message.role_mentions[2] if len(message.role_mentions) > 2 else None
+        guild = message.guild
+        
+        # 1. First Match -> Alumni Role (Strict Order)
+        alumni_role = guild.get_role(int(role_matches[0]))
+        # 2. Second Match -> Member Role (Strict Order)
+        member_role = guild.get_role(int(role_matches[1]))
+        
+        # 3. Third Match -> Old Role (Optional)
+        remove_role = None
+        if len(role_matches) > 2:
+            remove_role = guild.get_role(int(role_matches[2]))
+
+        if not alumni_role or not member_role:
+             await message.reply("❌ Error: Could not resolve one of the roles. Please check the IDs.")
+             return
         
         from datetime import datetime, timezone
         # Fixed Cutoff Date: May 1st, 2024 (UTC)

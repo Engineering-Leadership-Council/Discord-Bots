@@ -206,29 +206,36 @@ class RoleBot(discord.Client):
                         print(f"Skipping {member.name}: No joined_at date.")
                         continue
 
+
+
                     is_alumni = member.joined_at < cutoff_date
                     
                     # LOGGING EVERY DECISION
-                    print(f"DEBUG: {member.name} | Joined: {member.joined_at} | Cutoff: {cutoff_date} | IsAlumni ({member.joined_at} < {cutoff_date}): {is_alumni}")
+                    print(f"DEBUG: {member.name} | Joined: {member.joined_at} | IsAlumni: {is_alumni}")
 
+                    import asyncio
+                    
                     # ACTION 1: Assign New Role
                     if is_alumni:
                         # Give Alumni Role if they don't have it
                         if alumni_role not in member.roles:
                             await member.add_roles(alumni_role)
                             stats["alumni_added"] += 1
-                            print(f"[Migration] {member.name} -> Alumni (Joined: {member.joined_at.date()})")
+                            print(f"[Migration] {member.name} -> Alumni")
+                            await asyncio.sleep(1) # Rate limit protection
                     else:
                         # Give Member Role if they don't have it
                         if member_role not in member.roles:
                             await member.add_roles(member_role)
                             stats["members_added"] += 1
-                            print(f"[Migration] {member.name} -> Member (Joined: {member.joined_at.date()})")
+                            print(f"[Migration] {member.name} -> Member")
+                            await asyncio.sleep(1) # Rate limit protection
 
                     # ACTION 2: Remove Old Role (if specified and present)
                     if remove_role and remove_role in member.roles:
                         await member.remove_roles(remove_role)
                         stats["roles_removed"] += 1
+                        await asyncio.sleep(0.5) # Rate limit protection
                 
                 except discord.Forbidden:
                     print(f"ERROR: Missing permissions to manage roles for {member.name}.")
@@ -236,6 +243,10 @@ class RoleBot(discord.Client):
                 except Exception as e:
                     print(f"ERROR processing {member.name}: {e}")
                     stats["errors"] += 1
+                
+                # Small sleep between every user just to be safe
+                import asyncio
+                await asyncio.sleep(0.1)
             
             # 6. Final Report
             await status_msg.edit(content=(

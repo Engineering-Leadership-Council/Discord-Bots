@@ -27,15 +27,23 @@ class WelcomeBot(discord.Client):
         Event triggered when a new member joins the server.
         Sends a welcome message to a specific channel.
         """
+        print(f"DEBUG: WelcomeBot.on_member_join triggered for {member.name} (ID: {member.id})")
+        print(f"DEBUG: Member Pending Status: {member.pending}")
+
         # If pending verification (Onboarding), wait.
         if member.pending:
             print(f"WelcomeBot: {member.name} is pending verification. Waiting...")
             return
 
+        print(f"WelcomeBot: {member.name} is NOT pending. Sending welcome...")
         await self.send_welcome(member)
 
     async def on_member_update(self, before, after):
         """Handle member update events, specifically regarding verification."""
+        # Log state changes for debugging
+        if before.pending != after.pending:
+            print(f"DEBUG: WelcomeBot.on_member_update: {after.name} Pending changed: {before.pending} -> {after.pending}")
+
         # Check if member completed verification (pending: True -> False)
         if before.pending and not after.pending:
             print(f"WelcomeBot: {after.name} completed verification.")

@@ -233,14 +233,22 @@ class RoleBot(discord.Client):
 
     async def on_member_join(self, member):
         """Automatically assign a role when a new member joins."""
+        print(f"DEBUG: RoleBot.on_member_join triggered for {member.name} (ID: {member.id})")
+        print(f"DEBUG: Member Pending Status: {member.pending}")
+        
         if member.pending:
             print(f"RoleBot: {member.name} is pending verification. Waiting...")
             return
 
+        print(f"RoleBot: {member.name} is NOT pending. Assigning role...")
         await self.assign_auto_role(member)
 
     async def on_member_update(self, before, after):
         """Handle member update events, specifically regarding verification."""
+        # Log state changes for debugging
+        if before.pending != after.pending:
+            print(f"DEBUG: RoleBot.on_member_update: {after.name} Pending changed: {before.pending} -> {after.pending}")
+
         # Check if member completed verification (pending: True -> False)
         if before.pending and not after.pending:
             print(f"RoleBot: {after.name} completed verification.")

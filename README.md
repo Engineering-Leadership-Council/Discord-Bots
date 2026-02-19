@@ -26,7 +26,7 @@ A comprehensive event management system that keeps the community informed.
 | `!delete_event` | **Admin** | Sends a button to open a private menu for deleting events. |
 | `!list_events` | Public | Displays a list of ALL currently scheduled events. |
 | `!upcoming` | Public | Shows the next 3 scheduled events in chat. |
-| `!setup_upcoming` | **Admin** | Creates the **Live Dashboard** message in the current channel. |
+| `!setup_upcoming` | **Admin** | **UI Available:** Use the button in `!admin_setup` to place the dashboard. |
 
 ---
 
@@ -43,8 +43,8 @@ Manages role assignments, self-service roles, and bulk migrations.
 #### **Command Reference:**
 | Command | Permission | Description |
 | :--- | :--- | :--- |
-| `!setup_reaction` | **Admin** | Creates a reaction role message.<br>**Usage:** `!setup_reaction #channel "Title" <Emoji> @Role` |
-| `!migrate_alumni` | **Admin** | **Alumni Migration:** Assigns Alumni/Member roles based on join date.\n**Usage:** `!migrate_alumni @AlumniRole @MemberRole [YYYY-MM-DD]`\n**Defaults:** Date defaults to `2024-05-01` if omitted.\n**UI Option:** Use `!admin_setup` to open the "Migrate Roles" form.
+| `!setup_reaction` | **Admin** | **UI Available:** Use `!admin_setup` -> "Setup Reaction Roles" to create menus interactively.<br>Manual: `!setup_reaction #channel "Title" <Emoji> @Role` |
+| `!migrate_alumni` | **Admin** | **Alumni Migration:** Assigns Alumni/Member roles based on join date.\n**UI Available:** Use `!admin_setup` -> "Migrate Roles".
 
 ---
 
@@ -117,7 +117,7 @@ Manages and displays the weekly schedule for the Makerspace or community events.
 #### **Command Reference:**
 | Command | Permission | Description |
 | :--- | :--- | :--- |
-| `!set_schedule_channel` | **Admin** | Sets the current channel as the display location for the weekly schedule. |
+| `!set_schedule_channel` | **Admin** | **UI Available:** Use `!admin_setup` -> "Set Display Channel". |
 | `!setup_schedule` | **Admin** | Spawns the "Edit Weekly Schedule" button for admins to update times. |
 
 ---
@@ -136,8 +136,6 @@ Manages 3D printer filament inventory, tracking usage and remaining weights.
 #### **Command Reference:**
 | Command | Permission | Description |
 | :--- | :--- | :--- |
-| `!filament setup` | **Admin** | Deploys the Public and Admin dashboards to the channels specified in `.env`. |
-
 | `!filament setup` | **Admin** | Deploys the Public and Admin dashboards to the channels specified in `.env`. |
 
 ---

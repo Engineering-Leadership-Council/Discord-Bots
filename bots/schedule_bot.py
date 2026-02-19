@@ -31,6 +31,20 @@ class ScheduleModal(ui.Modal, title="Edit Weekly Schedule"):
         await interaction.response.send_message("Schedule updated successfully!", ephemeral=True)
         await bot.update_schedule_display()
 
+class ScheduleChannelSelect(ui.View):
+    def __init__(self, bot: 'ScheduleBot'):
+        super().__init__(timeout=60)
+        self.bot = bot
+
+    @ui.select(cls=ui.ChannelSelect, channel_types=[discord.ChannelType.text], placeholder="Select a channel for the schedule...")
+    async def select_channel(self, interaction: discord.Interaction, select: ui.ChannelSelect):
+        channel = select.values[0]
+        self.bot.schedule_data['display_channel_id'] = channel.id
+        self.bot.save_schedule()
+        await interaction.response.send_message(f"Schedule display channel set to {channel.mention}", ephemeral=True)
+        await self.bot.update_schedule_display()
+        self.stop()
+
 class ScheduleAdminView(ui.View):
     def __init__(self, bot: 'ScheduleBot'):
         super().__init__(timeout=None)
@@ -51,6 +65,15 @@ class ScheduleAdminView(ui.View):
         modal.thursday.default = current_schedule.get('Thursday', '')
         modal.friday.default = current_schedule.get('Friday', '')
         await interaction.response.send_modal(modal)
+
+    @ui.button(label="Set Display Channel", style=discord.ButtonStyle.blurple, custom_id="schedule_admin_channel")
+    async def channel_button(self, interaction: discord.Interaction, button: ui.Button):
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("Only Admins can set the channel.", ephemeral=True)
+            return
+            
+        view = ScheduleChannelSelect(self.bot)
+        await interaction.response.send_message("Select the channel where the schedule should be displayed:", view=view, ephemeral=True)
 
 class ScheduleBot(discord.Client):
     def __init__(self, *args, **kwargs):

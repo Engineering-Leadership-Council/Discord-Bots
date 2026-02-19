@@ -142,6 +142,36 @@ class EventAdminView(ui.View):
         del_view = DeleteEventView(self.bot.events, self.bot)
         await interaction.response.send_message("Select an event to delete:", view=del_view, ephemeral=True)
 
+    @ui.button(label="Setup Upcoming", style=discord.ButtonStyle.blurple, custom_id="event_admin_upcoming")
+    async def setup_upcoming(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.send_message("Select the channel for the upcoming events dashboard:", view=UpcomingChannelSelect(self.bot), ephemeral=True)
+
+class UpcomingChannelSelect(ui.View):
+    def __init__(self, bot: 'EventBot'):
+        super().__init__(timeout=60)
+        self.bot = bot
+
+    @ui.select(cls=ui.ChannelSelect, channel_types=[discord.ChannelType.text], placeholder="Select a channel...")
+    async def select_channel(self, interaction: discord.Interaction, select: ui.ChannelSelect):
+        channel = select.values[0]
+        
+        # Send initial message
+        embeds = self.bot.get_upcoming_embeds()
+        try:
+            msg = await channel.send(embeds=embeds)
+            
+            # Store ID
+            self.bot.data['upcoming_message_id'] = msg.id
+            self.bot.data['upcoming_channel_id'] = msg.channel.id
+            self.bot.save_events()
+            
+            await interaction.response.send_message(f"Upcoming events dashboard created in {channel.mention}", ephemeral=True)
+            self.stop()
+        except discord.Forbidden:
+             await interaction.response.send_message(f"Error: I do not have permission to send messages in {channel.mention}", ephemeral=True)
+        except Exception as e:
+             await interaction.response.send_message(f"Error setting up dashboard: {e}", ephemeral=True)
+
 # --- Main Bot Class ---
 
 class EventBot(discord.Client):

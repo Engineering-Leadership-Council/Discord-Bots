@@ -47,6 +47,69 @@ class AdminDashboardView(discord.ui.View):
         # Open Modal
         await interaction.response.send_modal(MigrationModal(self.bot, interaction.channel))
 
+    @discord.ui.button(label="Setup Reaction Roles", style=discord.ButtonStyle.success, emoji="🎭")
+    async def reaction_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Select the channel where the reaction role message should appear:", view=ReactionChannelSelect(self.bot), ephemeral=True)
+
+class ReactionChannelSelect(discord.ui.View):
+    def __init__(self, bot):
+        super().__init__(timeout=60)
+        self.bot = bot
+
+    @discord.ui.select(cls=discord.ui.ChannelSelect, channel_types=[discord.ChannelType.text], placeholder="Select a channel...")
+    async def select_channel(self, interaction: discord.Interaction, select: discord.ui.ChannelSelect):
+        channel = select.values[0]
+        await interaction.response.send_modal(ReactionSetupModal(self.bot, channel))
+        self.stop()
+
+class ReactionSetupModal(discord.ui.Modal, title="Reaction Roles Setup"):
+    title_input = discord.ui.TextInput(label="Message Title", placeholder="React to get Roles!", max_length=256)
+    pairs_input = discord.ui.TextInput(label="Emoji-Role Pairs", style=discord.TextStyle.paragraph, placeholder="🔴 @Red\n🔵 @Blue\n(Emoji followed by Role Mention)", required=True)
+
+    def __init__(self, bot, channel):
+        super().__init__()
+        self.bot = bot
+        self.channel = channel
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # reuse existing logic from on_message basically
+        # 4. Find Emoji-Role Pairs
+        import re
+        pair_pattern = r'(\S+)\s+(<@&\d+>)'
+        matches = re.findall(pair_pattern, self.pairs_input.value)
+
+        if not matches:
+             await interaction.response.send_message('Error: No valid Emoji-Role pairs found. Format: emoji @role', ephemeral=True)
+             return
+        
+        description = ""
+        emojis_to_add = []
+        
+        for emoji, role_mention in matches:
+            description += f"{emoji} : {role_mention}\n"
+            emojis_to_add.append(emoji)
+        
+        embed = discord.Embed(
+            title=self.title_input.value,
+            description=description,
+            color=0x3498DB
+        )
+        embed.set_footer(text=bot_config.ROLE_BOT_FOOTER)
+
+        try:
+            sent_msg = await self.channel.send(embed=embed)
+            await interaction.response.send_message(f"Reaction Role message created in {self.channel.mention}", ephemeral=True)
+
+            for emoji in emojis_to_add:
+                try:
+                    await sent_msg.add_reaction(emoji)
+                except Exception as e:
+                     print(f"Failed to add reaction {emoji}: {e}")
+        except discord.Forbidden:
+             await interaction.response.send_message(f"Error: I do not have permission to send messages in {self.channel.mention}", ephemeral=True)
+        except Exception as e:
+             await interaction.response.send_message(f"Error: {e}", ephemeral=True)
+
 
 class RoleBot(discord.Client):
     def __init__(self, *args, **kwargs):
